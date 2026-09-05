@@ -5,8 +5,8 @@ One question, the whole screen. Made for a table of people answering out loud.
 Opens on a branded start screen; one tap on **Roll the First Question** drops you
 into the deck.
 
-- **Swipe right** (or tap the dice) — a new question you haven't seen
-- **Swipe left** — back through everything you've already had
+- **Swipe left** (or tap the dice) — a new question you haven't seen
+- **Swipe right** — back through everything you've already had
 - **Arrow keys** work too, on a laptop
 
 No accounts, no backend, no analytics. It's a static site.
@@ -40,11 +40,11 @@ whatever is in the list.
 ## How the deck works
 
 [`src/deck.ts`](src/deck.ts) holds a shuffled *bag* of every question. Each
-right swipe draws from the bag, so you see all 114 before any repeats. When
+left swipe draws from the bag, so you see all 114 before any repeats. When
 the bag empties it reshuffles, and the question you're looking at is kept out
 of the next draw so nothing repeats back to back.
 
-Everything shown this session is kept in `history`, and a left swipe just walks
+Everything shown this session is kept in `history`, and a right swipe just walks
 the cursor back through it. Going back and then forward replays the same
 questions in order; swipe past the end and it draws something new. History is
 never rewritten or lost while the page is open.

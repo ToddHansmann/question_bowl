@@ -165,10 +165,12 @@ body {
   border-radius: 999px;
   background: var(--ink);
   color: var(--bowl-top);
-  font-family: inherit;
-  font-size: clamp(1.02rem, min(4.6vw, 2.6vh), 1.3rem);
-  font-weight: 500;
-  letter-spacing: 0.002em;
+  /* Sans, against the serif wordmark. System stack — no extra font request. */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(0.98rem, min(4.3vw, 2.5vh), 1.22rem);
+  font-weight: 600;
+  letter-spacing: 0.006em;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;

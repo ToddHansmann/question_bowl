@@ -52,7 +52,9 @@ export default function App() {
       setOffset(0)
       return
     }
-    setDir(direction)
+    // A new question is thrown left, a revisited one right — the opposite of
+    // the swipe that asked for it, so the card follows the finger off screen.
+    setDir(-direction)
     setExiting({ id: seq + 1, text: current, from })
     setDeck(direction === 1 ? forward : back)
     setSeq((s) => s + 1)
@@ -78,7 +80,7 @@ export default function App() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const forwards = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter'
+      const forwards = e.key === 'ArrowLeft' || e.key === ' ' || e.key === 'Enter'
       if (!started) {
         if (forwards) {
           e.preventDefault()
@@ -89,7 +91,7 @@ export default function App() {
       if (forwards) {
         e.preventDefault()
         goRef.current(1, 0)
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowRight') {
         e.preventDefault()
         goRef.current(-1, 0)
       }
@@ -139,7 +141,7 @@ export default function App() {
     if (!d.horizontal) return
 
     // Nothing behind us — pull against a rubber band instead.
-    setOffset(dx < 0 && !canGoBack ? dx * 0.25 : dx)
+    setOffset(dx > 0 && !canGoBack ? dx * 0.25 : dx)
   }
 
   function onPointerUp(e: React.PointerEvent<HTMLElement>) {
@@ -156,7 +158,8 @@ export default function App() {
       Math.abs(dx) > DISTANCE ||
       (Math.abs(dx) > FLICK_DISTANCE && speed > FLICK_VELOCITY)
 
-    if (thrown) go(dx > 0 ? 1 : -1, dx < 0 && !canGoBack ? dx * 0.25 : dx)
+    // Left for a new question, right to revisit the previous one.
+    if (thrown) go(dx < 0 ? 1 : -1, dx > 0 && !canGoBack ? dx * 0.25 : dx)
     else setOffset(0)
   }
 
@@ -218,8 +221,8 @@ export default function App() {
         </div>
       </div>
 
-      <span className="hint hint--left" aria-hidden="true" data-on={canGoBack} />
-      <span className="hint hint--right" aria-hidden="true" data-on={true} />
+      <span className="hint hint--left" aria-hidden="true" data-on={true} />
+      <span className="hint hint--right" aria-hidden="true" data-on={canGoBack} />
 
       <button
         type="button"

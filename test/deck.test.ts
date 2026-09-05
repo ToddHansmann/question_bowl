@@ -20,7 +20,7 @@ test('the deck has questions and no duplicates', () => {
   )
 })
 
-test('right swipe never repeats a question until the deck is exhausted', () => {
+test('drawing forward never repeats a question until the deck is exhausted', () => {
   let d: Deck = initialDeck()
   for (let i = 0; i < questions.length - 1; i++) d = forward(d)
   assert.equal(d.history.length, questions.length)
@@ -41,7 +41,7 @@ test('the deck reshuffles and never repeats back to back across passes', () => {
   }
 })
 
-test('left swipe walks back through history, right swipe walks forward again', () => {
+test('stepping back walks history in reverse, stepping forward replays it', () => {
   let d: Deck = initialDeck()
   for (let i = 0; i < 9; i++) d = forward(d)
   const seen = [...d.history]
@@ -55,7 +55,7 @@ test('left swipe walks back through history, right swipe walks forward again', (
   assert.deepEqual(d.history, seen, 'history changed while re-walking it')
 })
 
-test('left swipe stops at the first question of the session', () => {
+test('stepping back stops at the first question of the session', () => {
   let d: Deck = initialDeck()
   d = forward(d)
   d = back(d)
