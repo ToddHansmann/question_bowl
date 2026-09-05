@@ -1,0 +1,372 @@
+:root {
+  --bowl-top: #fd3d2f;
+  --bowl-bottom: #fe7014;
+  --bowl-gradient: linear-gradient(180deg, var(--bowl-top) 0%, var(--bowl-bottom) 100%);
+  --ink: #ffffff;
+  color-scheme: light only;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bowl-gradient);
+  color: var(--ink);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /*
+   * Fraunces stands in for Cooper Lt BT, which has no web licence. Local Cooper
+   * names are deliberately NOT in this stack: "Cooper Light" resolves to Cooper
+   * Black on machines that have it, which would set the deck in a heavy display
+   * face. To use a licensed Cooper, self-host the woff2 and add it here.
+   */
+  font-family: Fraunces, 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  height: 100%;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* ------------------------------------------------------------- screen --- */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: block;
+  background: var(--bowl-gradient);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.screen:active {
+  cursor: grabbing;
+}
+
+.screen--enter {
+  animation: deck-in 320ms ease both;
+}
+
+@keyframes deck-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------ landing --- */
+
+.landing {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bowl-gradient);
+  padding-inline: clamp(28px, 8vw, 72px);
+  padding-block: calc(env(safe-area-inset-top, 0px) + 32px)
+    calc(env(safe-area-inset-bottom, 0px) + 32px);
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+
+.landing__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  animation: landing-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing--out .landing__inner {
+  animation: landing-out 240ms ease both;
+}
+
+@keyframes landing-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+.landing__title {
+  margin: 0;
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.006em;
+  font-size: clamp(2.7rem, min(14.5vw, 15vh), 5.4rem);
+}
+
+.landing__the {
+  display: block;
+  margin-bottom: 0.42em;
+  font-size: 0.3em;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.landing__name {
+  display: block;
+  text-wrap: balance;
+}
+
+.landing__tagline {
+  margin: clamp(18px, 3.4vh, 28px) 0 0;
+  font-size: clamp(1rem, min(4.4vw, 2.4vh), 1.25rem);
+  letter-spacing: 0.01em;
+  opacity: 0.78;
+}
+
+.cta {
+  margin-top: clamp(34px, 6.5vh, 60px);
+  padding: 0.92em 1.55em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bowl-top);
+  font-family: inherit;
+  font-size: clamp(1.02rem, min(4.6vw, 2.6vh), 1.3rem);
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms ease;
+}
+
+.cta:active {
+  transform: scale(0.97);
+}
+
+.cta:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 4px;
+}
+
+/* -------------------------------------------------------------- stage --- */
+
+.stage {
+  position: relative;
+  display: grid;
+  height: 100%;
+  place-items: center;
+}
+
+.slot {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding-inline: clamp(28px, 8vw, 72px);
+  padding-block: clamp(40px, 13vh, 128px);
+  /* Keep the text clear of the dice on short screens. */
+  padding-bottom: max(clamp(40px, 13vh, 128px), 88px);
+  animation: slot-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slot--out {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: slot-out 260ms cubic-bezier(0.4, 0, 0.7, 1) both;
+}
+
+@keyframes slot-in {
+  from {
+    opacity: 0;
+    transform: translate3d(calc(var(--dir) * -26px), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slot-out {
+  from {
+    opacity: 1;
+    transform: translate3d(var(--from, 0px), 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(calc(var(--dir) * 60vw), 0, 0);
+  }
+}
+
+/* ---------------------------------------------------------- question --- */
+
+.q {
+  margin: 0;
+  max-width: min(100%, 16em);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  line-height: 1.18;
+  letter-spacing: -0.004em;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.q--dragging {
+  transition: none;
+}
+
+.q--xl {
+  font-size: clamp(2.1rem, min(11.4vw, 16vh), 4.2rem);
+  line-height: 1.1;
+}
+
+.q--lg {
+  font-size: clamp(1.7rem, min(8.7vw, 12.4vh), 3.4rem);
+}
+
+.q--md {
+  font-size: clamp(1.45rem, min(7.3vw, 9.4vh), 2.85rem);
+  line-height: 1.22;
+}
+
+.q--sm {
+  font-size: clamp(1.3rem, min(6.6vw, 6.9vh), 2.55rem);
+  line-height: 1.28;
+}
+
+/* ------------------------------------------------------------- hints --- */
+
+.hint {
+  position: absolute;
+  top: 50%;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  opacity: 0.16;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.hint::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: 2px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.hint--left {
+  left: max(9px, env(safe-area-inset-left));
+}
+
+.hint--left::before {
+  transform: rotate(135deg);
+}
+
+.hint--right {
+  right: max(9px, env(safe-area-inset-right));
+}
+
+.hint--right::before {
+  transform: rotate(-45deg);
+}
+
+.hint[data-on='false'] {
+  opacity: 0;
+}
+
+/* -------------------------------------------------------------- dice --- */
+
+.dice {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-left: -28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  opacity: 0.82;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.dice:hover {
+  opacity: 1;
+}
+
+.dice:active {
+  opacity: 1;
+  transform: scale(0.9);
+}
+
+.dice:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* --------------------------------------------------------- motion off --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .slot--out,
+  .landing__inner,
+  .landing--out .landing__inner,
+  .screen--enter {
+    animation-duration: 1ms;
+  }
+
+  .q,
+  .dice,
+  .cta {
+    transition: none;
+  }
+}

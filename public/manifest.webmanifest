@@ -1,0 +1,17 @@
+{
+  "name": "The Question Bowl",
+  "short_name": "Question Bowl",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FD3D2F",
+  "theme_color": "#FD3D2F",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
