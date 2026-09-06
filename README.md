@@ -8,7 +8,7 @@ into the deck.
 - **Swipe left** (or tap the dice) — a new question you haven't seen
 - **Swipe right** — back through everything you've already had
 - **Arrow keys** work too, on a laptop
-- The **☰** menu (top right) turns expansion categories on and off
+- The **☰** menu (top right) turns Base Questions and each expansion pack on and off
 
 No accounts, no backend, no analytics. It's a static site.
 
@@ -46,17 +46,21 @@ shape it has always had.
 
 ## Categories
 
-The **☰** button opens a menu with one switch per category. Base Questions is
-always on and can't be switched off; the six expansion categories toggle
-independently, and any combination is fine. A question drawn from an enabled
-category shows a small eyebrow above it (e.g. `RISQUÉ`); base questions never
-get one.
+The **☰** button opens a menu with a switch for Base Questions, then the six
+expansion packs grouped under their own **Expansion Packs** heading — each
+toggles independently, plus an **All Expansion Packs** switch that flips all
+six at once (it reads as on only when every pack already is; click it from
+any other state and it turns them all on, not off). A question drawn from an
+enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`); base questions
+never get one.
 
-Turning every category off returns you to the original 114-question deck.
-Changing categories mid-session never touches your history — going back still
-replays exactly what you saw, in order — it only changes what's eligible to be
-drawn *next*. The choice isn't saved between visits; every fresh load starts
-base-only.
+Any combination is fine, with one rule: something has to stay on. The one
+toggle that would leave nothing selected — turning off the last enabled
+source, whichever it is — is refused rather than dropping you into an empty
+deck. Changing categories mid-session never touches your history — going back
+still replays exactly what you saw, in order — it only changes what's
+eligible to be drawn *next*. The choice isn't saved between visits; every
+fresh load starts on Base Questions alone.
 
 ### Audit
 
@@ -73,11 +77,11 @@ used Sniffies? How did that go?"), with no replacement.
 ## How the deck works
 
 [`src/deck.ts`](src/deck.ts) holds a shuffled *bag* — not of every question,
-but of every question in the current **pool**: base questions plus whichever
-categories are enabled. Each left swipe draws from the bag, so you see the
-whole pool before any repeats. When the bag empties it reshuffles, and the
-question you're looking at is kept out
-of the next draw so nothing repeats back to back.
+but of every question in the current **pool**: whichever of Base Questions
+and the expansion packs are switched on. Each left swipe draws from the bag,
+so you see the whole pool before any repeats. When the bag empties it
+reshuffles, and the question you're looking at is kept out of the next draw
+so nothing repeats back to back.
 
 Everything shown this session is kept in `history`, and a right swipe just walks
 the cursor back through it. Going back and then forward replays the same

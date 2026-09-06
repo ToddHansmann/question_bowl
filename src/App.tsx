@@ -37,8 +37,9 @@ function sizeClass(text: string): string {
 /* ----------------------------------------------------------------- app --- */
 
 export default function App() {
-  // Every expansion category starts off — a fresh session opens on the
-  // original 114 until someone deliberately opts into more.
+  // A fresh session opens on the original 114: Base on, every expansion pack
+  // off, until someone deliberately opts into more.
+  const [baseEnabled, setBaseEnabled] = useState(true)
   const [enabledCategories, setEnabledCategories] = useState<ReadonlySet<Category>>(
     () => new Set(),
   )
@@ -57,18 +58,19 @@ export default function App() {
   const exitTimer = useRef<number | undefined>(undefined)
   const startTimer = useRef<number | undefined>(undefined)
 
-  // Base questions are always in the pool; enabled categories are mixed in
-  // alongside them. Indices are absolute into `questions`, so toggling a
-  // category never invalidates anything already sitting in history.
+  // Base and every expansion pack toggle independently now. Indices are
+  // absolute into `questions`, so toggling one never invalidates anything
+  // already sitting in history — only what future draws can pick.
   const pool: Pool = useMemo(() => {
-    if (enabledCategories.size === 0) return basePool
     const p: number[] = []
     for (let i = 0; i < questions.length; i++) {
       const category = categoryByIndex[i]
-      if (category === null || enabledCategories.has(category)) p.push(i)
+      if (category === null ? baseEnabled : enabledCategories.has(category)) p.push(i)
     }
     return p
-  }, [enabledCategories])
+  }, [baseEnabled, enabledCategories])
+
+  const allPacksEnabled = CATEGORIES.every((c) => enabledCategories.has(c))
 
   // `forward` only tops up the bag once it runs dry, so a category switched
   // on mid-pass wouldn't otherwise become reachable until the old, narrower
@@ -112,13 +114,34 @@ export default function App() {
     startTimer.current = window.setTimeout(() => setStarted(true), LANDING_MS)
   }
 
+  // At least one source has to stay on — an empty pool has no question to
+  // show. Each toggle below refuses the one click that would zero everything
+  // out, exactly the way the original "Base can't be disabled" rule worked,
+  // just no longer hard-coded to Base specifically.
+
+  function toggleBase() {
+    setBaseEnabled((prev) => (prev && enabledCategories.size === 0 ? prev : !prev))
+  }
+
   function toggleCategory(category: Category) {
     setEnabledCategories((prev) => {
+      const isOn = prev.has(category)
+      if (isOn && prev.size === 1 && !baseEnabled) return prev
       const next = new Set(prev)
-      if (next.has(category)) next.delete(category)
+      if (isOn) next.delete(category)
       else next.add(category)
       return next
     })
+  }
+
+  /** One switch for every expansion pack at once. */
+  function toggleAllCategories() {
+    if (allPacksEnabled) {
+      if (!baseEnabled) return // would leave nothing enabled
+      setEnabledCategories(new Set())
+    } else {
+      setEnabledCategories(new Set(CATEGORIES))
+    }
   }
 
   // These close over this render's state, so keep fresh copies for listeners.
@@ -347,18 +370,31 @@ export default function App() {
             <h2 className="menu-title">Categories</h2>
 
             <div className="menu-list">
-              <div className="menu-row menu-row--locked">
-                <span className="menu-row__label">
-                  Base Questions
-                  <span className="menu-row__hint">Always included</span>
-                </span>
-                <span
-                  className="switch"
-                  data-checked="true"
+              <div className="menu-row">
+                <span className="menu-row__label">Base Questions</span>
+                <button
+                  type="button"
                   role="switch"
-                  aria-checked="true"
-                  aria-disabled="true"
-                  aria-label="Base Questions, always enabled"
+                  aria-checked={baseEnabled}
+                  aria-label="Base Questions"
+                  className="switch"
+                  data-checked={baseEnabled}
+                  onClick={toggleBase}
+                />
+              </div>
+
+              <h3 className="menu-subtitle">Expansion Packs</h3>
+
+              <div className="menu-row">
+                <span className="menu-row__label">All Expansion Packs</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={allPacksEnabled}
+                  aria-label="All Expansion Packs"
+                  className="switch"
+                  data-checked={allPacksEnabled}
+                  onClick={toggleAllCategories}
                 />
               </div>
 
