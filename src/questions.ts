@@ -244,7 +244,6 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Risqué', text: "Top, bottom, vers — and has that changed over the years?" },
   { category: 'Risqué', text: "What’s the strangest place you’ve ever met someone for sex?" },
   { category: 'Risqué', text: "What’s a sexual boundary you set that you’re proud of?" },
-  { category: 'Risqué', text: "Have you ever used Sniffies? How did that go?" },
   { category: 'Risqué', text: "What’s the biggest gap you’ve encountered between the profile and the person?" },
   { category: 'Risqué', text: "What’s a fantasy you’ve never said out loud to anyone at this table?" },
   { category: 'Risqué', text: "What’s the best sex you’ve ever had, and what made it the best?" },
@@ -291,3 +290,25 @@ export const questions: string[] = [
   ...baseQuestions,
   ...expansionQuestions.map((q) => q.text),
 ]
+
+/** Every expansion category, in menu order. */
+export const CATEGORIES: Category[] = [
+  'Warm-up',
+  'Personal',
+  'Messy',
+  'Dating',
+  'Risqué',
+  'Challenge',
+]
+
+/**
+ * Category for each index in `questions` — `null` marks an original base
+ * question, which never gets an eyebrow and can never be filtered out.
+ */
+export const categoryByIndex: (Category | null)[] = [
+  ...baseQuestions.map(() => null),
+  ...expansionQuestions.map((q) => q.category),
+]
+
+/** Indices of the original 114 — the pool when every expansion category is off. */
+export const basePool: number[] = baseQuestions.map((_, i) => i)

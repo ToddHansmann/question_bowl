@@ -239,6 +239,31 @@ body {
 
 /* ---------------------------------------------------------- question --- */
 
+/* Groups the eyebrow with the question so drag/throw moves them as one. */
+.q-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.q-wrap--dragging {
+  transition: none;
+}
+
+.q-eyebrow {
+  display: block;
+  margin: 0 0 0.6em;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(0.72rem, 2.4vw, 0.9rem);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
 .q {
   margin: 0;
   max-width: min(100%, 16em);
@@ -247,12 +272,6 @@ body {
   overflow-wrap: break-word;
   line-height: 1.18;
   letter-spacing: -0.004em;
-  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-.q--dragging {
-  transition: none;
 }
 
 .q--xl {
@@ -355,6 +374,197 @@ body {
   border-radius: 12px;
 }
 
+/* -------------------------------------------------------------- menu --- */
+
+.menu-toggle {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  opacity: 0.82;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease;
+}
+
+.menu-toggle:hover,
+.menu-toggle:active {
+  opacity: 1;
+}
+
+.menu-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.32);
+  animation: menu-backdrop-in 180ms ease both;
+}
+
+@keyframes menu-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.menu-panel {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(84vw, 320px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bowl-top);
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  animation: menu-panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menu-panel-in {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.menu-close {
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px 4px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.menu-title {
+  margin: 4px 0 12px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.66;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+.menu-list .menu-row:last-child {
+  border-bottom: 0;
+}
+
+.menu-row--locked {
+  opacity: 0.62;
+}
+
+.menu-row__label {
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.menu-row__hint {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0.7;
+}
+
+/* A small toggle switch, built without a library. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 160ms ease;
+}
+
+.switch[aria-disabled='true'] {
+  cursor: default;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.switch[data-checked='true'] {
+  background: var(--ink);
+}
+
+.switch[data-checked='true']::after {
+  background: var(--bowl-top);
+  transform: translate3d(16px, 0, 0);
+}
+
+.switch:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
 /* --------------------------------------------------------- motion off --- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -362,13 +572,17 @@ body {
   .slot--out,
   .landing__inner,
   .landing--out .landing__inner,
-  .screen--enter {
+  .screen--enter,
+  .menu-backdrop,
+  .menu-panel {
     animation-duration: 1ms;
   }
 
-  .q,
+  .q-wrap,
   .dice,
-  .cta {
+  .cta,
+  .switch,
+  .switch::after {
     transition: none;
   }
 }
