@@ -1,8 +1,29 @@
 /**
- * Question Bowl — the deck.
- * One string per card. Order does not matter; the app shuffles.
+ * The Question Bowl — the deck.
+ *
+ * `baseQuestions` is the original deck and is canonical: don't edit it.
+ * `expansionQuestions` layers on top, each tagged with a category.
+ * `questions` is the flat list the app plays — its shape is unchanged, so the
+ * deck logic and UI don't know any of this structure exists.
  */
-export const questions: string[] = [
+
+export type Category =
+  | 'Warm-up'
+  | 'Personal'
+  | 'Messy'
+  | 'Dating'
+  | 'Risqué'
+  | 'Challenge'
+
+export type Expansion = {
+  text: string
+  category: Category
+}
+
+/* ------------------------------------------------------------------ base --- */
+
+/** The original 114. Canonical — do not edit, reword, or reorder. */
+export const baseQuestions: string[] = [
   "Describe a time or times when you feel very connected with yourself.",
   "Describe a time you were uncomfortable being alone.",
   "Describe a time you were mean to yourself.",
@@ -117,4 +138,156 @@ export const questions: string[] = [
   "M, F, K: Pudding, Pickles, Porridge.",
   "M, F, K: The person to your right chooses the 3.",
   "M, F, K: The person across from you chooses the 3.",
+]
+
+/* ------------------------------------------------------------- expansion --- */
+
+/**
+ * The expansion deck. Two exact duplicates of base questions were dropped
+ * during the audit — see README. Near-duplicates are still here, flagged in
+ * the audit but deliberately left in play pending review.
+ */
+export const expansionQuestions: Expansion[] = [
+  /* -- Warm-up ----------------------------------------------------------- */
+  { category: 'Warm-up', text: "What’s the weirdest compliment you’ve ever received?" },
+  { category: 'Warm-up', text: "Which person here do you think would survive longest on a deserted island?" },
+  { category: 'Warm-up', text: "What’s a completely useless talent you’re oddly proud of?" },
+  { category: 'Warm-up', text: "If your life had a warning label, what would it say?" },
+  { category: 'Warm-up', text: "Which person here would make the best cult leader?" },
+  { category: 'Warm-up', text: "What’s the most ridiculous purchase you’ve ever justified?" },
+  { category: 'Warm-up', text: "If you had to swap lives with someone here for a week, who would it be?" },
+  { category: 'Warm-up', text: "What’s your most irrational fear?" },
+  { category: 'Warm-up', text: "What TV family would you want to join?" },
+  { category: 'Warm-up', text: "What’s the funniest lie you’ve ever told?" },
+  { category: 'Warm-up', text: "What’s one thing everyone should experience once?" },
+  { category: 'Warm-up', text: "What’s your most controversial food opinion?" },
+  { category: 'Warm-up', text: "What would your autobiography be called?" },
+  { category: 'Warm-up', text: "What’s something you’ve pretended to know about?" },
+  { category: 'Warm-up', text: "Which person here would be the hardest to date?" },
+  { category: 'Warm-up', text: "What’s a tiny hill you’d die on?" },
+  { category: 'Warm-up', text: "If you could relive one day, which would it be?" },
+  { category: 'Warm-up', text: "What’s something you secretly think you’re excellent at?" },
+  { category: 'Warm-up', text: "If your phone wallpaper had to be explained, what would the story be?" },
+
+  /* -- Personal ---------------------------------------------------------- */
+  { category: 'Personal', text: "When was the last time you changed your mind about something important?" },
+  { category: 'Personal', text: "What’s something you’ve never apologized for but probably should?" },
+  { category: 'Personal', text: "What’s one thing you wish people understood about you?" },
+  { category: 'Personal', text: "What’s your biggest relationship green flag?" },
+  { category: 'Personal', text: "What’s your biggest relationship red flag?" },
+  { category: 'Personal', text: "When do you feel most attractive?" },
+  { category: 'Personal', text: "What’s the nicest thing an ex ever did for you?" },
+  { category: 'Personal', text: "Who knows you better than anyone?" },
+  { category: 'Personal', text: "What’s something you’ve outgrown?" },
+  { category: 'Personal', text: "When do you feel most like yourself?" },
+  { category: 'Personal', text: "What’s something you miss from childhood?" },
+  { category: 'Personal', text: "What’s something you’ve never admitted to your parents?" },
+  { category: 'Personal', text: "What’s one insecurity you’ve mostly overcome?" },
+  { category: 'Personal', text: "What’s your love language — even if you hate the phrase?" },
+  { category: 'Personal', text: "What’s something you’ve forgiven that surprised you?" },
+  { category: 'Personal', text: "What’s your biggest “what if?”" },
+  { category: 'Personal', text: "What’s something you’re currently working on in yourself?" },
+  { category: 'Personal', text: "What’s one compliment you’ll never forget?" },
+  { category: 'Personal', text: "What’s something you hope is true five years from now?" },
+
+  /* -- Messy ------------------------------------------------------------- */
+  { category: 'Messy', text: "What’s the pettiest thing you’ve ever done?" },
+  { category: 'Messy', text: "Have you ever accidentally ruined someone’s relationship?" },
+  { category: 'Messy', text: "What’s the most awkward text you’ve sent to the wrong person?" },
+  { category: 'Messy', text: "What’s the worst first impression you’ve ever made?" },
+  { category: 'Messy', text: "Have you ever pretended not to recognize someone?" },
+  { category: 'Messy', text: "What’s your most embarrassing drunk story?" },
+  { category: 'Messy', text: "What’s something you’ve stolen — even accidentally?" },
+  { category: 'Messy', text: "Have you ever faked being sick to avoid someone?" },
+  { category: 'Messy', text: "What’s your biggest social regret?" },
+  { category: 'Messy', text: "What’s the longest you’ve gone without admitting you were wrong?" },
+  { category: 'Messy', text: "What’s the meanest thing you’ve ever said in an argument?" },
+  { category: 'Messy', text: "Have you ever ghosted someone you actually liked?" },
+  { category: 'Messy', text: "What’s the biggest lie you’ve told that nobody ever discovered?" },
+  { category: 'Messy', text: "What’s the most jealous you’ve ever been?" },
+  { category: 'Messy', text: "Have you ever sabotaged yourself?" },
+  { category: 'Messy', text: "What’s the closest you’ve come to getting arrested?" },
+  { category: 'Messy', text: "What’s your worst wedding guest behavior?" },
+  { category: 'Messy', text: "What’s the most embarrassing thing someone has caught you doing?" },
+  { category: 'Messy', text: "What’s the biggest misunderstanding you’ve ever created?" },
+  { category: 'Messy', text: "What’s the hardest you’ve laughed at someone else’s misfortune?" },
+
+  /* -- Dating ------------------------------------------------------------ */
+  { category: 'Dating', text: "Which celebrity would immediately make you nervous to flirt with?" },
+  { category: 'Dating', text: "What’s the boldest move you’ve made on someone?" },
+  { category: 'Dating', text: "Have you ever had a crush on someone in this room?" },
+  { category: 'Dating', text: "What’s your biggest turn-on that isn’t physical?" },
+  { category: 'Dating', text: "What’s the most attractive quality someone can have?" },
+  { category: 'Dating', text: "Have you ever kissed someone you just met?" },
+  { category: 'Dating', text: "What’s the most spontaneous romantic thing you’ve ever done?" },
+  { category: 'Dating', text: "Have you ever had feelings for someone you absolutely shouldn’t have?" },
+  { category: 'Dating', text: "What’s your biggest dating “ick”?" },
+  { category: 'Dating', text: "What’s something someone could do that would instantly make you interested?" },
+  { category: 'Dating', text: "Have you ever accidentally flirted with the wrong person?" },
+  { category: 'Dating', text: "What’s your most memorable first kiss?" },
+  { category: 'Dating', text: "What’s the biggest age gap you’ve dated?" },
+  { category: 'Dating', text: "Have you ever been caught making out?" },
+  { category: 'Dating', text: "What’s your favorite excuse for leaving a bad date?" },
+  { category: 'Dating', text: "What’s the most ridiculous reason you’ve liked someone?" },
+  { category: 'Dating', text: "Have you ever matched with someone you already knew?" },
+  { category: 'Dating', text: "What’s something you’ve always wanted to try on a date?" },
+  { category: 'Dating', text: "Have you ever gone on two dates in one day?" },
+  { category: 'Dating', text: "What’s your most unforgettable romantic disaster?" },
+
+  /* -- Risqué ------------------------------------------------------------ */
+  { category: 'Risqué', text: "What’s the most memorable hookup you’ve ever had, and what made it stick?" },
+  { category: 'Risqué', text: "What does your Grindr profile claim about you that isn’t strictly true?" },
+  { category: 'Risqué', text: "What’s a kink you were surprised to discover you were into?" },
+  { category: 'Risqué', text: "What’s your hard limit — the thing you’ll never be talked into?" },
+  { category: 'Risqué', text: "What’s the hottest thing someone has ever said to you in bed?" },
+  { category: 'Risqué', text: "What’s the most public place you’ve ever had sex?" },
+  { category: 'Risqué', text: "Top, bottom, vers — and has that changed over the years?" },
+  { category: 'Risqué', text: "What’s the strangest place you’ve ever met someone for sex?" },
+  { category: 'Risqué', text: "What’s a sexual boundary you set that you’re proud of?" },
+  { category: 'Risqué', text: "Have you ever used Sniffies? How did that go?" },
+  { category: 'Risqué', text: "What’s the biggest gap you’ve encountered between the profile and the person?" },
+  { category: 'Risqué', text: "What’s a fantasy you’ve never said out loud to anyone at this table?" },
+  { category: 'Risqué', text: "What’s the best sex you’ve ever had, and what made it the best?" },
+  { category: 'Risqué', text: "What were you into five years ago that does nothing for you now?" },
+  { category: 'Risqué', text: "Tell the story of your first time with a man." },
+  { category: 'Risqué', text: "How do you turn someone down when you’re just not interested?" },
+  { category: 'Risqué', text: "What’s a sexual insecurity you’ve made peace with?" },
+  { category: 'Risqué', text: "What’s the worst hookup you’ve ever had — the one that became a story?" },
+  { category: 'Risqué', text: "What’s a physical type you’re into that your friends have never understood?" },
+  { category: 'Risqué', text: "Have you ever had sex somewhere you could have been caught? What happened?" },
+
+  /* -- Challenge --------------------------------------------------------- */
+  { category: 'Challenge', text: "Let the group choose your phone wallpaper until tomorrow." },
+  { category: 'Challenge', text: "Speak in an accent until your next turn." },
+  { category: 'Challenge', text: "Swap seats with the person who knows you least." },
+  { category: 'Challenge', text: "Attempt 20 push-ups." },
+  { category: 'Challenge', text: "Trade one article of clothing with the person to your left." },
+  { category: 'Challenge', text: "Do your best impression of another player." },
+  { category: 'Challenge', text: "Serenade someone with the chorus of any song." },
+  { category: 'Challenge', text: "Let another player style your hair." },
+  { category: 'Challenge', text: "Do five yoga poses chosen by the group." },
+  { category: 'Challenge', text: "Tell a joke. If nobody laughs, tell another." },
+  { category: 'Challenge', text: "Moonwalk — or attempt to." },
+  { category: 'Challenge', text: "Hold eye contact with the person across from you for 30 seconds without laughing." },
+  { category: 'Challenge', text: "Do your best animal impression until someone guesses it." },
+  { category: 'Challenge', text: "Read out the last message you sent on a hookup app." },
+  { category: 'Challenge', text: "Let the group write your hookup-app tagline for the next 24 hours." },
+  { category: 'Challenge', text: "Text an ex, “I was just thinking about you.” No explanation, no follow-up." },
+  { category: 'Challenge', text: "Do your most convincing moan." },
+  { category: 'Challenge', text: "Try your best opening line on the person to your right." },
+  { category: 'Challenge', text: "Take off one item of clothing. You choose which." },
+  { category: 'Challenge', text: "Let the table pick one word to describe you in bed." },
+  { category: 'Challenge', text: "Give the person to your left a fifteen-second shoulder massage." },
+  { category: 'Challenge', text: "Whisper something filthy to the person on your right. They decide whether to repeat it." },
+  { category: 'Challenge', text: "Rank the table by who would be the best kisser. Out loud, with reasons." },
+  { category: 'Challenge', text: "Describe your type in three words, then let the table rule on whether that’s really true." },
+  { category: 'Challenge', text: "Say the filthiest thing you’ve ever said in bed, in the most romantic voice you can manage." },
+]
+
+/* ----------------------------------------------------------------- deck --- */
+
+/** What the app plays. Same flat shape it has always been. */
+export const questions: string[] = [
+  ...baseQuestions,
+  ...expansionQuestions.map((q) => q.text),
 ]

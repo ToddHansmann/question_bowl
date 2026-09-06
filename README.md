@@ -33,14 +33,30 @@ framework, build command, and output directory — no configuration needed.
 
 ## Edit the questions
 
-Everything lives in [`src/questions.ts`](src/questions.ts): one string per
-question, order irrelevant. Add, remove, or reword freely; the app shuffles
-whatever is in the list.
+Everything lives in [`src/questions.ts`](src/questions.ts), in two layers:
+
+- `baseQuestions` — the original 114. **Canonical: do not edit or reorder.**
+- `expansionQuestions` — the expansion, each tagged `Warm-up`, `Personal`,
+  `Messy`, `Dating`, `Risqué`, or `Challenge`.
+
+`questions` is the flat list the app plays (base then expansion). Its shape is
+unchanged, so the deck logic and UI never see the category structure.
+
+The categories are metadata today — nothing in the UI filters on them yet.
+
+### Audit
+
+The expansion was audited against the base deck. Two exact duplicates were
+removed from the expansion; the base versions were kept. Near-duplicates were
+**left in play** pending review — they are listed in the handover notes, not
+marked in the data. `npm test` enforces the result: no expansion question may
+duplicate a base question or another expansion question, and every expansion
+question must carry a known category.
 
 ## How the deck works
 
 [`src/deck.ts`](src/deck.ts) holds a shuffled *bag* of every question. Each
-left swipe draws from the bag, so you see all 114 before any repeats. When
+left swipe draws from the bag, so you see all 237 before any repeats. When
 the bag empties it reshuffles, and the question you're looking at is kept out
 of the next draw so nothing repeats back to back.
 

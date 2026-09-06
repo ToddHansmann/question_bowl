@@ -2,8 +2,33 @@
  * Deck behaviour checks. No framework — run with `npm test`.
  */
 import assert from 'node:assert/strict'
-import { questions } from '../src/questions'
+import {
+  baseQuestions,
+  expansionQuestions,
+  questions,
+  type Category,
+} from '../src/questions'
 import { back, forward, initialDeck, makeBag, type Deck } from '../src/deck'
+
+const CATEGORIES: Category[] = [
+  'Warm-up',
+  'Personal',
+  'Messy',
+  'Dating',
+  'Risqué',
+  'Challenge',
+]
+
+/** Ignore punctuation and case, so near-identical wording still collides. */
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 const results: string[] = []
 function test(name: string, fn: () => void) {
@@ -18,6 +43,45 @@ test('the deck has questions and no duplicates', () => {
     questions.every((q) => q.trim().length > 0),
     'blank question',
   )
+})
+
+test('the base deck is intact at 114 questions', () => {
+  assert.equal(baseQuestions.length, 114)
+})
+
+test('the deck is the base deck plus the expansion, in that order', () => {
+  assert.equal(questions.length, baseQuestions.length + expansionQuestions.length)
+  assert.deepEqual(questions.slice(0, 114), baseQuestions, 'base questions were altered')
+})
+
+test('no expansion question duplicates a base question', () => {
+  const base = new Map(baseQuestions.map((q) => [normalize(q), q]))
+  const collisions = expansionQuestions
+    .map((e) => ({ expansion: e.text, base: base.get(normalize(e.text)) }))
+    .filter((c) => c.base !== undefined)
+  assert.deepEqual(collisions, [], 'exact duplicate survived the audit')
+})
+
+test('no expansion question duplicates another expansion question', () => {
+  const seen = new Set<string>()
+  const collisions: string[] = []
+  for (const e of expansionQuestions) {
+    const key = normalize(e.text)
+    if (seen.has(key)) collisions.push(e.text)
+    seen.add(key)
+  }
+  assert.deepEqual(collisions, [])
+})
+
+test('every expansion question has a known category', () => {
+  const bad = expansionQuestions.filter((e) => !CATEGORIES.includes(e.category))
+  assert.deepEqual(bad, [])
+  for (const category of CATEGORIES) {
+    assert.ok(
+      expansionQuestions.some((e) => e.category === category),
+      `no questions in category ${category}`,
+    )
+  }
 })
 
 test('drawing forward never repeats a question until the deck is exhausted', () => {
