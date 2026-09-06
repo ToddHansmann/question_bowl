@@ -29,8 +29,9 @@ npm test          # deck logic: shuffling, history, no repeats
 
 ## Deploy
 
-Push to a Git repo and import it on Vercel. `vercel.json` already sets the
-framework, build command, and output directory — no configuration needed.
+Connected to Vercel for continuous deployment: every push to `main` builds
+and deploys automatically. `vercel.json` already sets the framework, build
+command, and output directory — no configuration needed.
 
 ## Edit the questions
 
