@@ -408,22 +408,6 @@ export default function App() {
         <div className="rate" onPointerDown={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="rate__btn rate__btn--up"
-            aria-label="Good question"
-            aria-pressed={currentRating === 'up'}
-            data-selected={currentRating === 'up'}
-            disabled={!!currentRating}
-            onClick={() => rateCurrent('up')}
-          >
-            <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
-              <path
-                d="M28 18V10C28 8.4087 27.3679 6.88258 26.2426 5.75736C25.1174 4.63214 23.5913 4 22 4L14 22V44H36.56C37.5247 44.0109 38.4608 43.6728 39.1958 43.048C39.9309 42.4232 40.4154 41.5538 40.56 40.6L43.32 22.6C43.407 22.0267 43.3683 21.4414 43.2067 20.8845C43.045 20.3276 42.7642 19.8126 42.3837 19.375C42.0032 18.9375 41.5322 18.5879 41.0031 18.3504C40.4741 18.113 39.8998 17.9934 39.32 18H28ZM14 44H8C6.93913 44 5.92172 43.5786 5.17157 42.8284C4.42143 42.0783 4 41.0609 4 40V26C4 24.9391 4.42143 23.9217 5.17157 23.1716C5.92172 22.4214 6.93913 22 8 22H14"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
             className="rate__btn rate__btn--down"
             aria-label="Not a good question"
             aria-pressed={currentRating === 'down'}
@@ -434,6 +418,22 @@ export default function App() {
             <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
               <path
                 d="M20 30L20 38C20 39.5913 20.6321 41.1174 21.7574 42.2426C22.8826 43.3679 24.4087 44 26 44L34 26L34 4L11.44 4C10.4753 3.9891 9.53925 4.32719 8.80419 4.95199C8.06913 5.57679 7.58465 6.44619 7.44 7.4L4.68 25.4C4.59299 25.9733 4.63165 26.5586 4.79332 27.1155C4.95499 27.6724 5.2358 28.1874 5.61628 28.625C5.99677 29.0625 6.46784 29.4121 6.99686 29.6496C7.52587 29.887 8.10019 30.0066 8.68 30L20 30ZM34 4L40 4C41.0609 4 42.0783 4.42143 42.8284 5.17158C43.5786 5.92172 44 6.93914 44 8L44 22C44 23.0609 43.5786 24.0783 42.8284 24.8284C42.0783 25.5786 41.0609 26 40 26L34 26"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="rate__btn rate__btn--up"
+            aria-label="Good question"
+            aria-pressed={currentRating === 'up'}
+            data-selected={currentRating === 'up'}
+            disabled={!!currentRating}
+            onClick={() => rateCurrent('up')}
+          >
+            <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+              <path
+                d="M28 18V10C28 8.4087 27.3679 6.88258 26.2426 5.75736C25.1174 4.63214 23.5913 4 22 4L14 22V44H36.56C37.5247 44.0109 38.4608 43.6728 39.1958 43.048C39.9309 42.4232 40.4154 41.5538 40.56 40.6L43.32 22.6C43.407 22.0267 43.3683 21.4414 43.2067 20.8845C43.045 20.3276 42.7642 19.8126 42.3837 19.375C42.0032 18.9375 41.5322 18.5879 41.0031 18.3504C40.4741 18.113 39.8998 17.9934 39.32 18H28ZM14 44H8C6.93913 44 5.92172 43.5786 5.17157 42.8284C4.42143 42.0783 4 41.0609 4 40V26C4 24.9391 4.42143 23.9217 5.17157 23.1716C5.92172 22.4214 6.93913 22 8 22H14"
                 fill="currentColor"
               />
             </svg>

@@ -15,6 +15,15 @@
 html,
 body {
   height: 100%;
+  /*
+   * iOS home-screen PWAs (standalone launch, no Safari chrome) can compute
+   * height:100% a little short of the true screen, leaving a sliver of the
+   * system's default white below the safe area — invisible in a normal
+   * Safari tab, only ever seen from the Home Screen. `dvh` tracks the actual
+   * visible viewport instead of a percentage chain, so it fills correctly in
+   * standalone mode; unsupported browsers just keep the height:100% above.
+   */
+  min-height: 100dvh;
   margin: 0;
   background: var(--bowl-gradient);
   color: var(--ink);
@@ -49,6 +58,7 @@ body {
 .screen {
   position: fixed;
   inset: 0;
+  min-height: 100dvh;
   display: block;
   background: var(--bowl-gradient);
   touch-action: none;
@@ -81,6 +91,7 @@ body {
 .landing {
   position: fixed;
   inset: 0;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   background: var(--bowl-gradient);
@@ -192,6 +203,7 @@ body {
 .empty {
   position: fixed;
   inset: 0;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding-inline: clamp(28px, 8vw, 72px);
@@ -395,7 +407,8 @@ body {
   border: 0;
   background: none;
   color: var(--ink);
-  opacity: 0.82;
+  /* Subtle, secondary control at rest — selecting one is what should stand out. */
+  opacity: 0.42;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
