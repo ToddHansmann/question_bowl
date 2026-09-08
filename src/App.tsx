@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CATEGORIES, categoryByIndex, basePool, questions, type Category } from './questions'
+import {
+  CATEGORIES,
+  categoryByIndex,
+  basePool,
+  questions,
+  sourceByIndex,
+  type Category,
+} from './questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from './deck'
+import {
+  loadRatings,
+  saveRatings,
+  submitRating,
+  submitSuggestion,
+  type RatingValue,
+} from './feedback'
 
 /* ------------------------------------------------------------- gesture --- */
 
@@ -53,6 +67,18 @@ export default function App() {
     () => new Set(),
   )
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuView, setMenuView] = useState<'categories' | 'suggest'>('categories')
+
+  // Question text → rating already given it on this device. Hydrated once;
+  // kept in sync with localStorage on every change so a rate button's
+  // disabled/selected state re-renders the instant it's pressed.
+  const [ratings, setRatings] = useState<Record<string, RatingValue>>(() => loadRatings())
+
+  const [suggestionText, setSuggestionText] = useState('')
+  const [suggestionCategory, setSuggestionCategory] = useState('')
+  const [suggestionStatus, setSuggestionStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>(
+    'idle',
+  )
 
   const [deck, setDeck] = useState<Deck>(() => initialDeck(basePool))
   const [offset, setOffset] = useState(0)
@@ -103,7 +129,9 @@ export default function App() {
   const currentIndex = deck.history[deck.cursor]
   const current = questions[currentIndex]
   const currentCategory = categoryByIndex[currentIndex]
+  const currentSource = sourceByIndex[currentIndex]
   const canGoBack = deck.cursor > 0
+  const currentRating = ratings[current]
 
   /** Advance (1) or retreat (-1), throwing the current question that way. */
   function go(direction: 1 | -1, from: number) {
@@ -132,6 +160,36 @@ export default function App() {
     if (leaving || started) return
     setLeaving(true)
     startTimer.current = window.setTimeout(() => setStarted(true), LANDING_MS)
+  }
+
+  /**
+   * Thumbs-up/down on the question currently on screen. Once a question has
+   * a rating it can't be changed or re-sent — a second tap is a no-op — so
+   * there's no path to accidentally double-submitting during normal use.
+   */
+  function rateCurrent(value: RatingValue) {
+    if (poolEmpty || currentRating) return
+    const next = { ...ratings, [current]: value }
+    setRatings(next)
+    saveRatings(next)
+    void submitRating(current, currentCategory, currentSource, value)
+  }
+
+  /** Closes the menu and resets it back to the categories view for next time. */
+  function closeMenu() {
+    setMenuOpen(false)
+    setMenuView('categories')
+    setSuggestionText('')
+    setSuggestionCategory('')
+    setSuggestionStatus('idle')
+  }
+
+  async function submitTheSuggestion() {
+    const text = suggestionText.trim()
+    if (!text || suggestionStatus === 'sending') return
+    setSuggestionStatus('sending')
+    const ok = await submitSuggestion(text, (suggestionCategory as Category) || null)
+    setSuggestionStatus(ok ? 'sent' : 'error')
   }
 
   // Every source — Base included — is freely toggleable, even down to zero.
@@ -167,7 +225,7 @@ export default function App() {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && menuOpen) {
         e.preventDefault()
-        setMenuOpen(false)
+        closeMenu()
         return
       }
       const forwards = e.key === 'ArrowLeft' || e.key === ' ' || e.key === 'Enter'
@@ -347,102 +405,174 @@ export default function App() {
       </button>
 
       {!poolEmpty && (
-        <button
-          type="button"
-          className="dice"
-          aria-label="New question"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => go(1, 0)}
-        >
-          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-            <rect
-              x="3"
-              y="3"
-              width="18"
-              height="18"
-              rx="4.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            />
-            <circle cx="8.2" cy="8.2" r="1.45" fill="currentColor" />
-            <circle cx="15.8" cy="8.2" r="1.45" fill="currentColor" />
-            <circle cx="12" cy="12" r="1.45" fill="currentColor" />
-            <circle cx="8.2" cy="15.8" r="1.45" fill="currentColor" />
-            <circle cx="15.8" cy="15.8" r="1.45" fill="currentColor" />
-          </svg>
-        </button>
+        <div className="rate" onPointerDown={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="rate__btn rate__btn--up"
+            aria-label="Good question"
+            aria-pressed={currentRating === 'up'}
+            data-selected={currentRating === 'up'}
+            disabled={!!currentRating}
+            onClick={() => rateCurrent('up')}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <rect x="7" y="3" width="6" height="12" rx="3" fill="currentColor" />
+              <rect x="4" y="11" width="16" height="10" rx="3" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="rate__btn rate__btn--down"
+            aria-label="Not a good question"
+            aria-pressed={currentRating === 'down'}
+            data-selected={currentRating === 'down'}
+            disabled={!!currentRating}
+            onClick={() => rateCurrent('down')}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <rect x="7" y="3" width="6" height="12" rx="3" fill="currentColor" />
+              <rect x="4" y="11" width="16" height="10" rx="3" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {menuOpen && (
         <div
           className="menu-backdrop"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         >
           <nav
             className="menu-panel"
             aria-label="Question categories"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              className="menu-close"
-              aria-label="Close menu"
-              onClick={() => setMenuOpen(false)}
-            >
+            <button type="button" className="menu-close" aria-label="Close menu" onClick={closeMenu}>
               ✕
             </button>
 
-            <h2 className="menu-title">Categories</h2>
+            {menuView === 'categories' ? (
+              <>
+                <h2 className="menu-title">Categories</h2>
 
-            <div className="menu-list">
-              <div className="menu-row">
-                <span className="menu-row__label">Base Questions</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={baseEnabled}
-                  aria-label="Base Questions"
-                  className="switch"
-                  data-checked={baseEnabled}
-                  onClick={toggleBase}
-                />
-              </div>
-
-              <h3 className="menu-subtitle">Expansion Packs</h3>
-
-              <div className="menu-row">
-                <span className="menu-row__label">All Expansion Packs</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={allPacksEnabled}
-                  aria-label="All Expansion Packs"
-                  className="switch"
-                  data-checked={allPacksEnabled}
-                  onClick={toggleAllCategories}
-                />
-              </div>
-
-              {CATEGORIES.map((category) => {
-                const checked = enabledCategories.has(category)
-                return (
-                  <div className="menu-row" key={category}>
-                    <span className="menu-row__label">{category}</span>
+                <div className="menu-list">
+                  <div className="menu-row">
+                    <span className="menu-row__label">Base Questions</span>
                     <button
                       type="button"
                       role="switch"
-                      aria-checked={checked}
-                      aria-label={`${category} questions`}
+                      aria-checked={baseEnabled}
+                      aria-label="Base Questions"
                       className="switch"
-                      data-checked={checked}
-                      onClick={() => toggleCategory(category)}
+                      data-checked={baseEnabled}
+                      onClick={toggleBase}
                     />
                   </div>
-                )
-              })}
-            </div>
+
+                  <h3 className="menu-subtitle">Expansion Packs</h3>
+
+                  <div className="menu-row">
+                    <span className="menu-row__label">All Expansion Packs</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={allPacksEnabled}
+                      aria-label="All Expansion Packs"
+                      className="switch"
+                      data-checked={allPacksEnabled}
+                      onClick={toggleAllCategories}
+                    />
+                  </div>
+
+                  {CATEGORIES.map((category) => {
+                    const checked = enabledCategories.has(category)
+                    return (
+                      <div className="menu-row" key={category}>
+                        <span className="menu-row__label">{category}</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={checked}
+                          aria-label={`${category} questions`}
+                          className="switch"
+                          data-checked={checked}
+                          onClick={() => toggleCategory(category)}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="menu-suggest-link"
+                  onClick={() => setMenuView('suggest')}
+                >
+                  Suggest a Question
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="menu-back"
+                  onClick={() => setMenuView('categories')}
+                >
+                  ‹ Categories
+                </button>
+
+                <h2 className="menu-title">Suggest a Question</h2>
+
+                {suggestionStatus === 'sent' ? (
+                  <p className="menu-suggest-sent">
+                    Thanks — got it. We read every one of these.
+                  </p>
+                ) : (
+                  <form
+                    className="menu-suggest-form"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      void submitTheSuggestion()
+                    }}
+                  >
+                    <textarea
+                      className="menu-suggest-input"
+                      placeholder="What should we ask?"
+                      value={suggestionText}
+                      maxLength={300}
+                      rows={4}
+                      onChange={(e) => setSuggestionText(e.target.value)}
+                    />
+                    <select
+                      className="menu-suggest-select"
+                      aria-label="Category (optional)"
+                      value={suggestionCategory}
+                      onChange={(e) => setSuggestionCategory(e.target.value)}
+                    >
+                      <option value="">No preference</option>
+                      {CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="menu-suggest-submit"
+                      disabled={!suggestionText.trim() || suggestionStatus === 'sending'}
+                    >
+                      {suggestionStatus === 'sending' ? 'Sending…' : 'Submit'}
+                    </button>
+                    {suggestionStatus === 'error' && (
+                      <p className="menu-suggest-error">
+                        Didn't send — check your connection and try again.
+                      </p>
+                    )}
+                  </form>
+                )}
+              </>
+            )}
           </nav>
         </div>
       )}

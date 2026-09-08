@@ -1,10 +1,20 @@
 /**
  * The Question Bowl — the deck.
  *
- * `baseQuestions` is the original deck and is canonical: don't edit it.
- * `expansionQuestions` layers on top, each tagged with a category.
+ * `baseQuestions` is the original deck and is canonical: don't edit it. It's
+ * Ian's original 114, and stays free.
+ * `expansionQuestions` layers on top, each tagged with a category. It's
+ * Todd-created content — the pool any future paid expansion packs would draw
+ * from.
  * `questions` is the flat list the app plays — its shape is unchanged, so the
  * deck logic and UI don't know any of this structure exists.
+ *
+ * `sourceByIndex` and `categoryByIndex` (below) make that base/expansion
+ * split, and each expansion question's category, queryable by index without
+ * needing to change the shape of either array — so retiring a question or
+ * adding a replacement is just editing the relevant array; nothing else
+ * needs to change, since nothing persists an index across sessions (ratings
+ * and suggestions, see feedback.ts, key on question *text*, not position).
  */
 
 export type Category =
@@ -17,6 +27,9 @@ export type Category =
   | 'Adulting'
   | 'Travel'
   | 'Nostalgia'
+
+/** Where a question came from — `baseQuestions` vs. `expansionQuestions`. */
+export type Source = 'original' | 'todd'
 
 export type Expansion = {
   text: string
@@ -417,3 +430,14 @@ export const categoryByIndex: (Category | null)[] = [
 
 /** Indices of the original 114 — the pool when every expansion category is off. */
 export const basePool: number[] = baseQuestions.map((_, i) => i)
+
+/**
+ * Provenance for each index in `questions` — `'original'` for Ian's 114,
+ * `'todd'` for everything in `expansionQuestions`. This is what ratings and
+ * future paid-pack gating key off; it's data-layer only, not a visible label
+ * on the card (that's what the category eyebrow is for).
+ */
+export const sourceByIndex: Source[] = [
+  ...baseQuestions.map((): Source => 'original'),
+  ...expansionQuestions.map((): Source => 'todd'),
+]

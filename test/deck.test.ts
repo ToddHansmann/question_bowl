@@ -9,6 +9,7 @@ import {
   categoryByIndex,
   expansionQuestions,
   questions,
+  sourceByIndex,
 } from '../src/questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from '../src/deck'
 
@@ -172,6 +173,12 @@ test('categoryByIndex is null for base questions and set for every expansion que
   for (let i = baseQuestions.length; i < questions.length; i++) {
     assert.ok(CATEGORIES.includes(categoryByIndex[i] as never), `bad category at index ${i}`)
   }
+})
+
+test('sourceByIndex marks exactly the base questions original and everything else todd', () => {
+  assert.equal(sourceByIndex.length, questions.length)
+  for (let i = 0; i < baseQuestions.length; i++) assert.equal(sourceByIndex[i], 'original')
+  for (let i = baseQuestions.length; i < questions.length; i++) assert.equal(sourceByIndex[i], 'todd')
 })
 
 test('drawing forward with the base-only pool never surfaces an expansion question', () => {
