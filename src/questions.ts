@@ -14,6 +14,9 @@ export type Category =
   | 'Dating'
   | 'Risqué'
   | 'Challenge'
+  | 'Adulting'
+  | 'Travel'
+  | 'Nostalgia'
 
 export type Expansion = {
   text: string
@@ -168,6 +171,19 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Warm-up', text: "If you could relive one day, which would it be?" },
   { category: 'Warm-up', text: "What’s something you secretly think you’re excellent at?" },
   { category: 'Warm-up', text: "If your phone wallpaper had to be explained, what would the story be?" },
+  { category: 'Warm-up', text: "Are you a \"yes, hand me the baby\" person, or a \"please don't hand me the baby\" person?" },
+  { category: 'Warm-up', text: "What's the most boomer thing you've caught yourself doing?" },
+  { category: 'Warm-up', text: "Which generation — including the ones in between — do you feel like you don't quite belong to?" },
+  { category: 'Warm-up', text: "What pet from your childhood are you still a little in mourning for, or a little relieved you don't have anymore?" },
+  { category: 'Warm-up', text: "What's your hometown actually known for, and is it deserved?" },
+  { category: 'Warm-up', text: "What's the worst haircut you've ever paid for and then had to walk around in public with?" },
+  { category: 'Warm-up', text: "What's your gay identifier, if you claim one — twink, bear, otter, none of the above?" },
+  { category: 'Warm-up', text: "Defend or convict: is double-dipping actually a big deal, or is George right that everyone's overreacting?" },
+  { category: 'Warm-up', text: "What food combination do you love that visibly disturbs other people?" },
+  { category: 'Warm-up', text: "If your group chat assigned you a job title, what would it be?" },
+  { category: 'Warm-up', text: "What phase were you convinced was permanent at the time?" },
+  { category: 'Warm-up', text: "What's the last thing you searched for that you'd hesitate to say out loud right now?" },
+  { category: 'Warm-up', text: "What's your best \"you had to be there\" story from the pandemic — the one that still makes you laugh?" },
 
   /* -- Personal ---------------------------------------------------------- */
   { category: 'Personal', text: "When was the last time you changed your mind about something important?" },
@@ -189,6 +205,13 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Personal', text: "What’s something you’re currently working on in yourself?" },
   { category: 'Personal', text: "What’s one compliment you’ll never forget?" },
   { category: 'Personal', text: "What’s something you hope is true five years from now?" },
+  { category: 'Personal', text: "What does a good night alone actually look like for you?" },
+  { category: 'Personal', text: "What's something you do to recharge that would surprise people who think they know you?" },
+  { category: 'Personal', text: "What's your unofficial ritual for coming back to yourself after a stretch of being \"on\" for other people?" },
+  { category: 'Personal', text: "What's the difference between being alone and being lonely, for you specifically?" },
+  { category: 'Personal', text: "What's a form of self-care everyone raves about that does nothing for you?" },
+  { category: 'Personal', text: "How do you know when you've hit your social limit for the day?" },
+  { category: 'Personal', text: "What's something you've stopped feeling guilty about doing by yourself?" },
 
   /* -- Messy ------------------------------------------------------------- */
   { category: 'Messy', text: "What’s the pettiest thing you’ve ever done?" },
@@ -211,6 +234,15 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Messy', text: "What’s the most embarrassing thing someone has caught you doing?" },
   { category: 'Messy', text: "What’s the biggest misunderstanding you’ve ever created?" },
   { category: 'Messy', text: "What’s the hardest you’ve laughed at someone else’s misfortune?" },
+  { category: 'Messy', text: "Have you ever quietly refused to pay someone back, purely out of principle?" },
+  { category: 'Messy', text: "Have you ever calculated your exact share of a group bill down to the cent and made everyone wait for it?" },
+  { category: 'Messy', text: "What's the worst version of yourself that group vacations bring out?" },
+  { category: 'Messy', text: "Have you ever been genuinely offended by someone else's wedding plus-one policy?" },
+  { category: 'Messy', text: "What's the pettiest thing you've done to a hairstylist who wronged you — including just never going back, no explanation?" },
+  { category: 'Messy', text: "Have you ever pretended to like a haircut you hated, to the stylist's face?" },
+  { category: 'Messy', text: "What's a group chat argument that got way more heated than the actual topic deserved?" },
+  { category: 'Messy', text: "Did you break your own pandemic rules and never tell anyone?" },
+  { category: 'Messy', text: "Have you ever fully checked out at a job while still collecting the paycheck — and for how long did you get away with it?" },
 
   /* -- Dating ------------------------------------------------------------ */
   { category: 'Dating', text: "Which celebrity would immediately make you nervous to flirt with?" },
@@ -233,6 +265,11 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Dating', text: "What’s something you’ve always wanted to try on a date?" },
   { category: 'Dating', text: "Have you ever gone on two dates in one day?" },
   { category: 'Dating', text: "What’s your most unforgettable romantic disaster?" },
+  { category: 'Dating', text: "Were you and an ex ever \"on a break\" in the Ross-and-Rachel sense — and did you both actually agree on what that meant?" },
+  { category: 'Dating', text: "How do you and a partner actually split money — and did you ever have to negotiate that out loud?" },
+  { category: 'Dating', text: "What's the most awkward you've felt being someone's plus-one at a wedding — or bringing a plus-one everyone was skeptical of?" },
+  { category: 'Dating', text: "Would you rather find out your partner is bad with money or bad with time?" },
+  { category: 'Dating', text: "What's a relationship \"rule\" you and a partner made up that would sound insane to anyone else?" },
 
   /* -- Risqué ------------------------------------------------------------ */
   { category: 'Risqué', text: "What’s the most memorable hookup you’ve ever had, and what made it stick?" },
@@ -254,6 +291,16 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Risqué', text: "What’s the worst hookup you’ve ever had — the one that became a story?" },
   { category: 'Risqué', text: "What’s a physical type you’re into that your friends have never understood?" },
   { category: 'Risqué', text: "Have you ever had sex somewhere you could have been caught? What happened?" },
+  { category: 'Risqué', text: "Do you stay the night after a hookup, or are you out the door — and has that ever caused a problem?" },
+  { category: 'Risqué', text: "Have you ever had a completely faceless, anonymous encounter, and would you do it again?" },
+  { category: 'Risqué', text: "Glory holes: curiosity, hard pass, or been there?" },
+  { category: 'Risqué', text: "Have you ever been the one to pump and dump — or the one left wondering why someone vanished?" },
+  { category: 'Risqué', text: "Where's your personal line between sex and sex with substances involved?" },
+  { category: 'Risqué', text: "What's a hookup situation where you genuinely felt unsafe, not just regretful?" },
+  { category: 'Risqué', text: "What's the boldest lie you've told to get someone to come over?" },
+  { category: 'Risqué', text: "How long was your longest dry spell, and what ended it?" },
+  { category: 'Risqué', text: "Have you ever been part of a group scene — and would you seek that out again, or file it under \"once was enough\"?" },
+  { category: 'Risqué', text: "How old were you the first time you used a hookup app, and does that number surprise people?" },
 
   /* -- Challenge --------------------------------------------------------- */
   { category: 'Challenge', text: "Let the group choose your phone wallpaper until tomorrow." },
@@ -281,6 +328,61 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Challenge', text: "Rank the table by who would be the best kisser. Out loud, with reasons." },
   { category: 'Challenge', text: "Describe your type in three words, then let the table rule on whether that’s really true." },
   { category: 'Challenge', text: "Say the filthiest thing you’ve ever said in bed, in the most romantic voice you can manage." },
+  { category: 'Challenge', text: "Share your current hookup-app profile pic with the group — no context, no explanation." },
+  { category: 'Challenge', text: "Dig up your most catfish Grindr photo — the one that owes everyone an apology — and share it." },
+  { category: 'Challenge', text: "Find out who has the longest tongue at the table. Prove it." },
+
+  /* -- Adulting ------------------------------------------------------------ */
+  { category: 'Adulting', text: "What's the most you've ever spent trying to avoid an awkward conversation about money?" },
+  { category: 'Adulting', text: "Do you round up, split exactly evenly, or calculate your precise share when the bill comes?" },
+  { category: 'Adulting', text: "What's your actual tipping philosophy, and has it changed since you had to work for tips yourself?" },
+  { category: 'Adulting', text: "How much \"quiet quitting\" is happening in your current job, if you're honest?" },
+  { category: 'Adulting', text: "What's the most office-culture-poisoned phrase you've caught yourself saying out loud?" },
+  { category: 'Adulting', text: "Are you the friend who organizes the group plans, or the one who shows up wherever you're told?" },
+  { category: 'Adulting', text: "What's something you fixed yourself that you're unreasonably proud of?" },
+  { category: 'Adulting', text: "Describe the last time you had to actually lead something — a project, a room, a group of drunk friends." },
+  { category: 'Adulting', text: "What's your relationship with public speaking: thrive, survive, or actively avoid?" },
+  { category: 'Adulting', text: "What's your actual daily screen time, and how far off is that from what you'd guess?" },
+  { category: 'Adulting', text: "Is there a creator, celebrity, or total stranger online whose life you're weirdly invested in?" },
+  { category: 'Adulting', text: "Have you ever had a genuinely emotional exchange with an AI chatbot?" },
+  { category: 'Adulting', text: "What platform do you actually enjoy using, versus the one you use out of habit?" },
+  { category: 'Adulting', text: "What's a car repair or home repair you attempted yourself that you now regret?" },
+  { category: 'Adulting', text: "Which generation's work ethic do you secretly think you have, regardless of when you were born?" },
+  { category: 'Adulting', text: "What's the most \"I am becoming my parents\" financial habit you've picked up?" },
+  { category: 'Adulting', text: "Are you chronically early, chronically late, or does it depend entirely on who's waiting for you?" },
+
+  /* -- Travel ---------------------------------------------------------------- */
+  { category: 'Travel', text: "Are you an over-packer or an under-packer, and which trip finally proved it?" },
+  { category: 'Travel', text: "What's the most convincing travel scam you've ever fallen for, even a little?" },
+  { category: 'Travel', text: "What's your worst canceled- or delayed-flight story?" },
+  { category: 'Travel', text: "What's an unwritten rule of flying that you think everyone should follow and clearly doesn't?" },
+  { category: 'Travel', text: "What's the longest layover you've survived, and how did you fill the time?" },
+  { category: 'Travel', text: "What's a trip that went wrong in a way that turned into a great story only in hindsight?" },
+  { category: 'Travel', text: "Window, aisle, or you'll take whatever's left — and is that a real preference or just resignation?" },
+  { category: 'Travel', text: "What's the most unexpectedly great thing that's happened to you while traveling alone?" },
+  { category: 'Travel', text: "Have you ever nearly missed a flight because of something completely avoidable?" },
+  { category: 'Travel', text: "What souvenir did you buy that you immediately regretted?" },
+  { category: 'Travel', text: "What's your pre-flight ritual, if you have one?" },
+  { category: 'Travel', text: "Have you ever lost your passport, wallet, or phone while traveling — and how did that story end?" },
+  { category: 'Travel', text: "What's a destination with a five-star reputation that you'd personally give three stars?" },
+
+  /* -- Nostalgia --------------------------------------------------------- */
+  { category: 'Nostalgia', text: "What was your first car, and do you remember it fondly or is it better left forgotten?" },
+  { category: 'Nostalgia', text: "Describe your first kiss — the real, non-negotiable, no-do-overs first one." },
+  { category: 'Nostalgia', text: "Was your first kiss with a person of the same sex before or after you'd figured out you were gay?" },
+  { category: 'Nostalgia', text: "What's your coming out story — the real one, not the polished version you tell now?" },
+  { category: 'Nostalgia', text: "Was there a period where you were out to some people and closeted with others? What was that like to manage?" },
+  { category: 'Nostalgia', text: "Did you ever have a \"beard\" — a girlfriend or boyfriend to hide who you actually were?" },
+  { category: 'Nostalgia', text: "When did you first realize you were gay, even before you had the words for it?" },
+  { category: 'Nostalgia', text: "What's something you desperately wanted as a kid that you never got?" },
+  { category: 'Nostalgia', text: "What toy, show, or piece of music defined your childhood more than anything else?" },
+  { category: 'Nostalgia', text: "Did you go to prom? Who with, and how honest were you being with yourself that night?" },
+  { category: 'Nostalgia', text: "What's your best or worst high school story that still comes up with old friends?" },
+  { category: 'Nostalgia', text: "Who was in your pandemic pod, and would you choose the same people again?" },
+  { category: 'Nostalgia', text: "What was your honest opinion on mask etiquette during the pandemic — not the polite one?" },
+  { category: 'Nostalgia', text: "How did working from home change you, for better or worse?" },
+  { category: 'Nostalgia', text: "What's a place you used to live that you have complicated feelings about?" },
+  { category: 'Nostalgia', text: "What childhood friendship do you wish you'd kept, and what happened to it?" },
 ]
 
 /* ----------------------------------------------------------------- deck --- */
@@ -295,6 +397,9 @@ export const questions: string[] = [
 export const CATEGORIES: Category[] = [
   'Warm-up',
   'Personal',
+  'Nostalgia',
+  'Adulting',
+  'Travel',
   'Messy',
   'Dating',
   'Risqué',

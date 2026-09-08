@@ -38,7 +38,8 @@ command, and output directory — no configuration needed.
 Everything lives in [`src/questions.ts`](src/questions.ts), in two layers:
 
 - `baseQuestions` — the original 114. **Canonical: do not edit or reorder.**
-- `expansionQuestions` — the expansion, each tagged `Warm-up`, `Personal`,
+- `expansionQuestions` — the expansion, each tagged one of the nine categories
+  in `CATEGORIES`: `Warm-up`, `Personal`, `Nostalgia`, `Adulting`, `Travel`,
   `Messy`, `Dating`, `Risqué`, or `Challenge`.
 
 `questions` is the flat list the app plays (base then expansion), in the same
@@ -46,10 +47,10 @@ shape it has always had.
 
 ## Categories
 
-The **☰** button opens a menu with a switch for Base Questions, then the six
+The **☰** button opens a menu with a switch for Base Questions, then the nine
 expansion packs grouped under their own **Expansion Packs** heading — each
 toggles independently, plus an **All Expansion Packs** switch that flips all
-six at once (it reads as on only when every pack already is; click it from
+nine at once (it reads as on only when every pack already is; click it from
 any other state and it turns them all on, not off). A question drawn from an
 enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`); base questions
 never get one.
@@ -73,6 +74,13 @@ question must carry a known category.
 
 One Risqué question was later removed outright by request ("Have you ever
 used Sniffies? How did that go?"), with no replacement.
+
+A second content pass added 93 new questions — topping up the original six
+packs and introducing three new ones (Nostalgia, Adulting, Travel). Every new
+question was checked against the full existing corpus for exact and
+near-duplicate collisions before landing; see the session's final report for
+the counts and the two calls flagged for editorial review rather than
+implemented as originally suggested.
 
 ## How the deck works
 
