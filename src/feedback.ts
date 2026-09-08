@@ -4,25 +4,43 @@
  * policies backing it) ever reads one back. Submitted questions never enter
  * `questions.ts`; that stays a manual, editorial step.
  *
+ * The Supabase SDK is loaded lazily (dynamic `import()`), only on the first
+ * actual rating or suggestion attempt — not on initial page load. With real
+ * credentials configured, `createClient(...)` becomes reachable code, so
+ * esbuild can no longer tree-shake the SDK out of the main bundle; deferring
+ * the import keeps that ~60KB gzipped off everyone's first paint, including
+ * the (likely common) case of a visitor who never taps a rating at all.
+ *
  * Needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` at build time (see
  * README). Without them, every function below is a safe no-op — the rating
  * and suggestion UI still work, they just don't persist, and a warning is
- * logged once so that's obvious in development.
+ * logged once, on that first attempt, so that's obvious in development.
  */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Category, Source } from './questions'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-const client: SupabaseClient | null =
-  SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null
+let clientPromise: Promise<SupabaseClient | null> | undefined
 
-if (!client) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    'Question Bowl: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — ratings and suggestions will not be saved.',
-  )
+/** Fetches and builds the client at most once; every caller shares the result. */
+function getClient(): Promise<SupabaseClient | null> {
+  if (!clientPromise) {
+    clientPromise =
+      SUPABASE_URL && SUPABASE_ANON_KEY
+        ? import('@supabase/supabase-js').then(({ createClient }) =>
+            createClient(SUPABASE_URL, SUPABASE_ANON_KEY),
+          )
+        : Promise.resolve(null)
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.warn(
+        'Question Bowl: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — ratings and suggestions will not be saved.',
+      )
+    }
+  }
+  return clientPromise
 }
 
 export type RatingValue = 'up' | 'down'
@@ -34,6 +52,7 @@ export async function submitRating(
   source: Source,
   value: RatingValue,
 ): Promise<boolean> {
+  const client = await getClient()
   if (!client) return false
   const { error } = await client.from('question_ratings').insert({
     question_text: text,
@@ -50,6 +69,7 @@ export async function submitRating(
 
 /** A user-submitted question idea, for manual editorial review — never auto-added to the deck. */
 export async function submitSuggestion(text: string, category: Category | null): Promise<boolean> {
+  const client = await getClient()
   if (!client) return false
   const { error } = await client.from('question_suggestions').insert({
     suggested_text: text,
