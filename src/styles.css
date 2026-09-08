@@ -402,10 +402,6 @@ body {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.rate__btn--down svg {
-  transform: rotate(180deg);
-}
-
 .rate__btn:hover:not(:disabled) {
   opacity: 1;
 }
