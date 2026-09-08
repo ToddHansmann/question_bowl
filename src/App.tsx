@@ -10,6 +10,15 @@ const FLICK_VELOCITY = 0.55 // px per ms
 const EXIT_MS = 260
 const LANDING_MS = 240 // landing fade before the deck mounts
 
+/** Shown instead of a question when every category has been switched off. */
+const EMPTY_POOL_SAYINGS = [
+  'We could talk or not talk for hours.',
+  'Nothing to see here.',
+  'And the crowd goes mild.',
+  'Is the question in the room with us?',
+  'The group will meditate while you pick a category.',
+]
+
 type Drag = {
   id: number
   x: number
@@ -71,6 +80,14 @@ export default function App() {
   }, [baseEnabled, enabledCategories])
 
   const allPacksEnabled = CATEGORIES.every((c) => enabledCategories.has(c))
+  const poolEmpty = pool.length === 0
+
+  // Re-rolled each time the pool newly becomes empty, and stable for as long
+  // as it stays empty.
+  const emptyMessage = useMemo(
+    () => EMPTY_POOL_SAYINGS[Math.floor(Math.random() * EMPTY_POOL_SAYINGS.length)],
+    [poolEmpty],
+  )
 
   // `forward` only tops up the bag once it runs dry, so a category switched
   // on mid-pass wouldn't otherwise become reachable until the old, narrower
@@ -90,6 +107,9 @@ export default function App() {
 
   /** Advance (1) or retreat (-1), throwing the current question that way. */
   function go(direction: 1 | -1, from: number) {
+    // Nothing to draw or browse while the pool is empty — the empty-state
+    // screen is up instead of the deck, so there's no card to move anyway.
+    if (poolEmpty) return
     if (direction === -1 && !canGoBack) {
       setOffset(0)
       return
@@ -114,21 +134,19 @@ export default function App() {
     startTimer.current = window.setTimeout(() => setStarted(true), LANDING_MS)
   }
 
-  // At least one source has to stay on — an empty pool has no question to
-  // show. Each toggle below refuses the one click that would zero everything
-  // out, exactly the way the original "Base can't be disabled" rule worked,
-  // just no longer hard-coded to Base specifically.
+  // Every source — Base included — is freely toggleable, even down to zero.
+  // Nothing here needs to guard against an empty pool: go() refuses to draw
+  // or browse while it's empty, and the empty-state screen takes over from
+  // the deck until something is switched back on.
 
   function toggleBase() {
-    setBaseEnabled((prev) => (prev && enabledCategories.size === 0 ? prev : !prev))
+    setBaseEnabled((prev) => !prev)
   }
 
   function toggleCategory(category: Category) {
     setEnabledCategories((prev) => {
-      const isOn = prev.has(category)
-      if (isOn && prev.size === 1 && !baseEnabled) return prev
       const next = new Set(prev)
-      if (isOn) next.delete(category)
+      if (next.has(category)) next.delete(category)
       else next.add(category)
       return next
     })
@@ -136,12 +154,7 @@ export default function App() {
 
   /** One switch for every expansion pack at once. */
   function toggleAllCategories() {
-    if (allPacksEnabled) {
-      if (!baseEnabled) return // would leave nothing enabled
-      setEnabledCategories(new Set())
-    } else {
-      setEnabledCategories(new Set(CATEGORIES))
-    }
+    setEnabledCategories(allPacksEnabled ? new Set() : new Set(CATEGORIES))
   }
 
   // These close over this render's state, so keep fresh copies for listeners.
@@ -187,6 +200,7 @@ export default function App() {
   )
 
   function onPointerDown(e: React.PointerEvent<HTMLElement>) {
+    if (poolEmpty) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
     drag.current = {
       id: e.pointerId,
@@ -272,39 +286,50 @@ export default function App() {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      <div
-        className="stage"
-        style={{ ['--dir' as string]: dir }}
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {exiting && (
+      {poolEmpty ? (
+        <section className="empty" aria-live="polite" aria-atomic="true">
+          <div className="empty__inner">
+            <p className={`q ${sizeClass(emptyMessage)}`}>{emptyMessage}</p>
+            <p className="empty__hint">Turn on at least one category</p>
+          </div>
+        </section>
+      ) : (
+        <>
           <div
-            className="slot slot--out"
-            aria-hidden="true"
-            key={`out-${exiting.id}`}
-            style={{ ['--from' as string]: `${exiting.from}px` }}
+            className="stage"
+            style={{ ['--dir' as string]: dir }}
+            aria-live="polite"
+            aria-atomic="true"
           >
-            <div className="q-wrap">
-              {exiting.category && <span className="q-eyebrow">{exiting.category}</span>}
-              <p className={`q ${sizeClass(exiting.text)}`}>{exiting.text}</p>
+            {exiting && (
+              <div
+                className="slot slot--out"
+                aria-hidden="true"
+                key={`out-${exiting.id}`}
+                style={{ ['--from' as string]: `${exiting.from}px` }}
+              >
+                <div className="q-wrap">
+                  {exiting.category && <span className="q-eyebrow">{exiting.category}</span>}
+                  <p className={`q ${sizeClass(exiting.text)}`}>{exiting.text}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="slot" key={seq}>
+              <div
+                className={`q-wrap ${dragging ? 'q-wrap--dragging' : ''}`}
+                style={{ transform: `translate3d(${offset}px, 0, 0)` }}
+              >
+                {currentCategory && <span className="q-eyebrow">{currentCategory}</span>}
+                <p className={`q ${sizeClass(current)}`}>{current}</p>
+              </div>
             </div>
           </div>
-        )}
 
-        <div className="slot" key={seq}>
-          <div
-            className={`q-wrap ${dragging ? 'q-wrap--dragging' : ''}`}
-            style={{ transform: `translate3d(${offset}px, 0, 0)` }}
-          >
-            {currentCategory && <span className="q-eyebrow">{currentCategory}</span>}
-            <p className={`q ${sizeClass(current)}`}>{current}</p>
-          </div>
-        </div>
-      </div>
-
-      <span className="hint hint--left" aria-hidden="true" data-on={true} />
-      <span className="hint hint--right" aria-hidden="true" data-on={canGoBack} />
+          <span className="hint hint--left" aria-hidden="true" data-on={true} />
+          <span className="hint hint--right" aria-hidden="true" data-on={canGoBack} />
+        </>
+      )}
 
       <button
         type="button"
@@ -321,31 +346,33 @@ export default function App() {
         </svg>
       </button>
 
-      <button
-        type="button"
-        className="dice"
-        aria-label="New question"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => go(1, 0)}
-      >
-        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-          <rect
-            x="3"
-            y="3"
-            width="18"
-            height="18"
-            rx="4.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          />
-          <circle cx="8.2" cy="8.2" r="1.45" fill="currentColor" />
-          <circle cx="15.8" cy="8.2" r="1.45" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.45" fill="currentColor" />
-          <circle cx="8.2" cy="15.8" r="1.45" fill="currentColor" />
-          <circle cx="15.8" cy="15.8" r="1.45" fill="currentColor" />
-        </svg>
-      </button>
+      {!poolEmpty && (
+        <button
+          type="button"
+          className="dice"
+          aria-label="New question"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => go(1, 0)}
+        >
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+            <rect
+              x="3"
+              y="3"
+              width="18"
+              height="18"
+              rx="4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <circle cx="8.2" cy="8.2" r="1.45" fill="currentColor" />
+            <circle cx="15.8" cy="8.2" r="1.45" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.45" fill="currentColor" />
+            <circle cx="8.2" cy="15.8" r="1.45" fill="currentColor" />
+            <circle cx="15.8" cy="15.8" r="1.45" fill="currentColor" />
+          </svg>
+        </button>
+      )}
 
       {menuOpen && (
         <div

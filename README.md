@@ -55,13 +55,20 @@ any other state and it turns them all on, not off). A question drawn from an
 enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`); base questions
 never get one.
 
-Any combination is fine, with one rule: something has to stay on. The one
-toggle that would leave nothing selected — turning off the last enabled
-source, whichever it is — is refused rather than dropping you into an empty
-deck. Changing categories mid-session never touches your history — going back
+Every switch is free to turn off, Base included — including all of them at
+once. With nothing selected there's no question to draw, so the deck is
+replaced by a small empty-state screen instead: the same gradient and
+typography, a one-line joke picked at random from a short list, and a fixed
+subheading — "Turn on at least one category" — under it. The **☰** button
+still works from there, so getting back in is one tap away. Swiping and the
+dice do nothing while it's up, and no keypress can force a draw with nothing
+to draw from.
+
+Changing categories mid-session never touches your history — going back
 still replays exactly what you saw, in order — it only changes what's
-eligible to be drawn *next*. The choice isn't saved between visits; every
-fresh load starts on Base Questions alone.
+eligible to be drawn *next*, including whether anything is eligible at all.
+The choice isn't saved between visits; every fresh load starts on Base
+Questions alone.
 
 ### Audit
 
