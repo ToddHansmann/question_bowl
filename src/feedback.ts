@@ -1,47 +1,23 @@
 /**
- * Ratings and suggestions — the app's only outbound data. Both are one-way:
+ * Ratings and suggestions — the app's outbound feedback. Both are one-way:
  * this module can insert a row, and nothing in the app (or the database
  * policies backing it) ever reads one back. Submitted questions never enter
  * `questions.ts`; that stays a manual, editorial step.
  *
- * The Supabase SDK is loaded lazily (dynamic `import()`), only on the first
- * actual rating or suggestion attempt — not on initial page load. With real
- * credentials configured, `createClient(...)` becomes reachable code, so
- * esbuild can no longer tree-shake the SDK out of the main bundle; deferring
- * the import keeps that ~60KB gzipped off everyone's first paint, including
- * the (likely common) case of a visitor who never taps a rating at all.
+ * Every row now carries `attribution()` — the device's visitor id, this
+ * page load's session id, and the test-mode flag — so a rating can be tied
+ * to the session that produced it, and so an admin trying the app out
+ * doesn't land in the beta's real numbers. See analytics.ts.
  *
- * Needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` at build time (see
- * README). Without them, every function below is a safe no-op — the rating
- * and suggestion UI still work, they just don't persist, and a warning is
- * logged once, on that first attempt, so that's obvious in development.
+ * Both writes go through `restInsert` — a bare POST at PostgREST, not the
+ * Supabase SDK. These are insert-only rows against insert-only tables, so
+ * the SDK would buy nothing and cost ~60KB gzipped in the main bundle; see
+ * supabase.ts. Without credentials both functions are safe no-ops: the
+ * rating and suggestion UI still work, they just don't persist.
  */
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { attribution } from './analytics'
 import type { Category, Source } from './questions'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-
-let clientPromise: Promise<SupabaseClient | null> | undefined
-
-/** Fetches and builds the client at most once; every caller shares the result. */
-function getClient(): Promise<SupabaseClient | null> {
-  if (!clientPromise) {
-    clientPromise =
-      SUPABASE_URL && SUPABASE_ANON_KEY
-        ? import('@supabase/supabase-js').then(({ createClient }) =>
-            createClient(SUPABASE_URL, SUPABASE_ANON_KEY),
-          )
-        : Promise.resolve(null)
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.warn(
-        'Question Bowl: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — ratings and suggestions will not be saved.',
-      )
-    }
-  }
-  return clientPromise
-}
+import { restInsert } from './supabase'
 
 export type RatingValue = 'up' | 'down'
 
@@ -52,34 +28,26 @@ export async function submitRating(
   source: Source,
   value: RatingValue,
 ): Promise<boolean> {
-  const client = await getClient()
-  if (!client) return false
-  const { error } = await client.from('question_ratings').insert({
+  const ok = await restInsert('question_ratings', {
     question_text: text,
     category,
     source,
     value,
+    ...attribution(),
   })
-  if (error) {
-    console.warn('Question Bowl: rating failed to save', error.message)
-    return false
-  }
-  return true
+  if (!ok) console.warn('Question Bowl: rating failed to save')
+  return ok
 }
 
 /** A user-submitted question idea, for manual editorial review — never auto-added to the deck. */
 export async function submitSuggestion(text: string, category: Category | null): Promise<boolean> {
-  const client = await getClient()
-  if (!client) return false
-  const { error } = await client.from('question_suggestions').insert({
+  const ok = await restInsert('question_suggestions', {
     suggested_text: text,
     suggested_category: category,
+    ...attribution(),
   })
-  if (error) {
-    console.warn('Question Bowl: suggestion failed to save', error.message)
-    return false
-  }
-  return true
+  if (!ok) console.warn('Question Bowl: suggestion failed to save')
+  return ok
 }
 
 /* -------------------------------------------------------- rated-locally --- */

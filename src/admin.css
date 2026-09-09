@@ -1,0 +1,326 @@
+/*
+ * Dashboard styling. Deliberately not the deck: the deck is one enormous
+ * serif question on a gradient, made to be read across a table, and none of
+ * that helps someone scanning a hundred rows of numbers. This is a plain,
+ * dense, light document — brand orange used only as an accent — so the
+ * figures are the loudest thing on the page.
+ *
+ * Loaded from Admin.tsx, so it only ships in the /admin chunk.
+ */
+
+.adm {
+  --line: #e6e2dd;
+  --muted: #6b6560;
+  --accent: #fd3d2f;
+  min-height: 100dvh;
+  background: #faf8f6;
+  color: #191614;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/*
+ * styles.css locks the page down for swiping — html/body get height:100%,
+ * overflow:hidden and the gradient — and it is loaded on every page,
+ * including this one. These three rules undo exactly that much for /admin
+ * and nothing else. `.adm-root` is set on <html> by main.tsx, so each of
+ * these outranks the bare html/body selectors on specificity rather than on
+ * load order.
+ */
+.adm-root,
+.adm-root body,
+.adm-root #root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  background: #faf8f6;
+}
+
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 18px clamp(16px, 4vw, 40px);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.adm-head h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.adm-head h1 span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.adm-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-left: auto;
+}
+
+.adm-who {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.adm-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.adm-check select {
+  margin-left: 4px;
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+}
+
+.adm-main {
+  padding: clamp(20px, 4vw, 40px);
+  max-width: 1100px;
+}
+
+.adm-section {
+  margin-bottom: 44px;
+}
+
+.adm-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-section h2 {
+  margin: 0 0 14px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.adm-section h3 {
+  margin: 28px 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- tiles --- */
+
+.adm-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.adm-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.adm-tile__value {
+  font-size: 1.85rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-tile__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.adm-tile__note {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+/* -------------------------------------------------------------- tables --- */
+
+/* Wide tables scroll in their own box; the page itself never does sideways. */
+.adm-scroll {
+  overflow-x: auto;
+}
+
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.adm-table th,
+.adm-table td {
+  padding: 9px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.adm-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.adm-table th {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.adm-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.adm-q {
+  min-width: 22em;
+  max-width: 46em;
+}
+
+.adm-cat {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------- suggestions --- */
+
+.adm-suggestions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.adm-suggestions li {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.adm-suggestions li:last-child {
+  border-bottom: 0;
+}
+
+.adm-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------- signin --- */
+
+.adm-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 320px;
+}
+
+.adm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adm-field span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.adm-field input {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+}
+
+.adm-field input:focus-visible,
+.adm-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.adm-btn {
+  align-self: flex-start;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.adm-btn--quiet {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.adm-note {
+  color: var(--muted);
+  max-width: 46em;
+}
+
+.adm-note--tight {
+  margin: -4px 0 10px;
+  font-size: 0.8rem;
+}
+
+.adm-note code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #efeae5;
+  font-size: 0.85em;
+}
+
+.adm-error {
+  color: #b4231a;
+}

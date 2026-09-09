@@ -8,6 +8,7 @@ import {
   type Category,
 } from './questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from './deck'
+import { SESSION_COMPLETE_AT, trackOnce } from './analytics'
 import {
   loadRatings,
   saveRatings,
@@ -158,6 +159,7 @@ export default function App() {
   /** Leave the landing screen and drop into the deck. */
   function start() {
     if (leaving || started) return
+    trackOnce('session_started')
     setLeaving(true)
     startTimer.current = window.setTimeout(() => setStarted(true), LANDING_MS)
   }
@@ -248,6 +250,26 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [started, menuOpen])
+
+  // Fires for everyone who loads the page, whether or not they ever tap
+  // past the landing screen — it's what unique visitors is counted from, and
+  // the gap between it and `session_started` is the landing screen's
+  // drop-off. StrictMode double-mounts in development; `trackOnce` makes
+  // that a no-op rather than two visits.
+  useEffect(() => {
+    trackOnce('app_opened')
+  }, [])
+
+  // There's no natural end to a session — the deck never runs out — so
+  // "completed" is defined rather than observed: SESSION_COMPLETE_AT
+  // questions in. `history` only ever grows on a new draw, so its length is
+  // exactly how many distinct questions this session has seen; walking back
+  // and forward through it doesn't inflate the count.
+  useEffect(() => {
+    if (deck.history.length >= SESSION_COMPLETE_AT) {
+      trackOnce('session_completed', { questions_seen: deck.history.length })
+    }
+  }, [deck.history.length])
 
   useEffect(
     () => () => {

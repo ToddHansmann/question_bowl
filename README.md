@@ -12,9 +12,10 @@ into the deck.
 - The **☰** menu (top right) turns Base Questions and each expansion pack on
   and off, and holds **Suggest a Question**
 
-No accounts, no analytics. Still a static site, plus one small write-only
-Supabase backend for ratings and suggestions — see
-[Ratings & suggestions](#ratings--suggestions) below.
+No accounts and nothing to sign up for. Still a static site, plus one small
+write-only Supabase backend for ratings, suggestions and a thin event stream
+— see [Ratings & suggestions](#ratings--suggestions) and
+[Analytics & the admin dashboard](#analytics--the-admin-dashboard) below.
 
 ## Run it
 
@@ -149,8 +150,18 @@ into the live deck automatically:
 - `question_suggestions` — one row per submission: `suggested_text`,
   `suggested_category` (optional, nullable), `created_at`.
 
-Review either table in Supabase's own Table Editor or SQL editor — there's no
-admin UI in the app itself, by design.
+Both tables also carry `visitor_id`, `session_id` and `is_test` now, so a
+rating can be tied back to the session that produced it and admin activity
+can be kept out of the real numbers. Rows written before that existed have
+nulls there and read as "pre-analytics". Review either table in Supabase's
+Table Editor, or use the dashboard below.
+
+Writes go out as a plain `fetch` POST at PostgREST rather than through the
+Supabase SDK (`restInsert` in [`src/supabase.ts`](src/supabase.ts)). These
+are insert-only rows against insert-only tables — the SDK's query builder,
+auth and realtime buy nothing here and cost ~60KB gzipped in the main bundle.
+The SDK is still used, lazily, by exactly one caller: the admin dashboard,
+which genuinely needs sign-in.
 
 The rate buttons sit where the dice used to, live only while there's a
 question on screen (hidden on the empty-state screen, same as the dice was),
@@ -168,6 +179,68 @@ the menu panel's content to a small form (question text, optional category
 picker) rather than opening a new overlay or route. Submitting shows a
 plain-text "thanks" in the same panel; there's no separate confirmation
 screen.
+
+## Analytics & the admin dashboard
+
+Three events, each fired at most once per session, all into one append-only
+`analytics_events` table:
+
+| Event | When |
+| --- | --- |
+| `app_opened` | page load, whether or not anyone taps past the landing screen |
+| `session_started` | the tap into the deck |
+| `session_completed` | five questions in (`SESSION_COMPLETE_AT`) |
+
+The table is `{ name, props jsonb }`, and that shape is the point: a new
+metric is a new event name or a new key in `props`, never a new column and
+never a migration.
+
+What's collected is deliberately thin — a random visitor id, a random session
+id, an event name, and how many questions were seen. No accounts, no PII, no
+fingerprinting, no third party. `visitor_id` is a UUID generated on the
+device and kept in localStorage; it says "the same browser came back" and
+nothing else, and clearing site data makes someone a new visitor.
+
+**There is no natural end to a session** — the deck never runs out — so
+"completed" is defined rather than observed. Five questions is the point
+where someone has clearly played rather than glanced. The dashboard says so
+next to the number.
+
+### The dashboard
+
+Lives at **/admin**, as its own lazy chunk — the dashboard, its stylesheet
+and the Supabase SDK never reach someone who just came to play. It shows
+traffic, engagement, ratings by category and by question, most liked, most
+polarizing, and the suggestion inbox.
+
+Security is entirely server-side; nothing in the bundle decides it. Sign-in
+is Supabase Auth, every figure comes from a `SECURITY DEFINER` function that
+calls `is_admin()` before it aggregates anything, and the tables grant
+`select` only to signed-in users whose email is in `admin_emails`. Calling
+the RPCs by hand with the anon key returns `permission denied for function`;
+selecting from the tables returns `[]`. Both were checked directly against
+the deployed project.
+
+**Setting up access**, once per admin:
+
+1. Supabase → Authentication → Users → **Add user**, with a real password.
+   (`toddhansmann@gmail.com` is already in `admin_emails`; any other address
+   needs a row there too.)
+2. Go to /admin and sign in.
+
+An account that exists but isn't on the allow-list sees zeroes, and the
+dashboard says so rather than pretending there's no traffic.
+
+### Test mode
+
+Signing in to the dashboard turns **test mode** on for that device, and it
+can be toggled by hand from the header. Everything that device then sends —
+ratings, suggestions, events — is marked `is_test = true`, and every metric
+excludes test rows unless **Include test data** is ticked. So demoing the app
+on your own phone doesn't quietly become the beta's engagement numbers.
+
+It's client-asserted, so a determined visitor could hide their own activity.
+That costs them their own data and nobody else's.
 
 ## Notes
 
