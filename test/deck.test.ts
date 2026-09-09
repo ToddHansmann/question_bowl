@@ -334,7 +334,7 @@ test('the questions moved out of Dark Room are in Risqué', () => {
     assert.ok(risque.includes(id), `${id} should be in Risqué`)
   }
   const dark = expansionQuestions.filter((q) => q.category === 'Dark Room').map((q) => q.id)
-  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-184', 'exp-186', 'exp-301', 'exp-304'])
+  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-184', 'exp-186', 'exp-188', 'exp-189', 'exp-191', 'exp-194', 'exp-195', 'exp-196', 'exp-301', 'exp-304', 'exp-310', 'exp-311'])
 })
 
 test('basePool covers exactly the base questions, nothing else', () => {

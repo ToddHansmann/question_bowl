@@ -1,20 +1,22 @@
 /**
  * The Question Bowl — the deck.
  *
- * `baseQuestions` is the original deck and is canonical: don't edit it. It's
- * Ian's original 114, and stays free.
+ * `BASE_DECK` is the original deck and is canonical: never edit the wording,
+ * never reorder, never delete. It's Ian's original 114 and stays at 114
+ * forever. An original may be *retired* — see `retired` below — which takes
+ * it out of play without taking it out of the record.
  * `expansionQuestions` layers on top, each tagged with a category. It's
  * Todd-created content — the pool any future paid expansion packs would draw
  * from.
  * `questions` is the flat list the app plays — its shape is unchanged, so the
  * deck logic and UI don't know any of this structure exists.
  *
- * `sourceByIndex` and `categoryByIndex` (below) make that base/expansion
- * split, and each expansion question's category, queryable by index without
- * needing to change the shape of either array — so retiring a question or
- * adding a replacement is just editing the relevant array; nothing else
- * needs to change, since nothing persists an index across sessions (ratings
- * and suggestions, see feedback.ts, key on question *text*, not position).
+ * Every entry carries a stable `id`. **Ratings key on the id, not the text**,
+ * so a question can be reworded or moved between packs without orphaning the
+ * feedback it has already collected. `sourceByIndex` and `categoryByIndex`
+ * key on *position* in the active deck, which is why they are derived fresh
+ * rather than stored — a retirement shifts every position after it, and
+ * nothing may persist a position across sessions.
  */
 
 export type Category =
@@ -426,15 +428,9 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-182', category: 'Challenge', text: "Do your best animal impression until someone guesses it." },
   { id: 'exp-185', category: 'Challenge', text: "Text an ex, “I was just thinking about you.” No explanation, no follow-up." },
   { id: 'exp-187', category: 'Challenge', text: "Try your best opening line on the person to your right." },
-  { id: 'exp-188', category: 'Challenge', text: "Take off one item of clothing. You choose which." },
-  { id: 'exp-189', category: 'Challenge', text: "Let the table pick one word to describe you in bed." },
   { id: 'exp-190', category: 'Challenge', text: "Give the person to your left a fifteen-second shoulder massage." },
-  { id: 'exp-191', category: 'Challenge', text: "Whisper something filthy to the person on your right. They decide whether to repeat it." },
   { id: 'exp-192', category: 'Challenge', text: "Rank the table by who would be the best kisser. Out loud, with reasons." },
   { id: 'exp-193', category: 'Challenge', text: "Describe your type in three words, then let the table rule on whether that’s really true." },
-  { id: 'exp-194', category: 'Challenge', text: "Say the filthiest thing you’ve ever said in bed, in the most romantic voice you can manage." },
-  { id: 'exp-195', category: 'Challenge', text: "Share your current hookup-app profile pic with the group — no context, no explanation." },
-  { id: 'exp-196', category: 'Challenge', text: "Dig up your most catfish Grindr photo — the one that owes everyone an apology — and share it." },
   { id: 'exp-197', category: 'Challenge', text: "Find out who has the longest tongue at the table. Prove it." },
   { id: 'exp-198', category: 'Challenge', text: "Say your screen time from last week out loud. The exact number." },
 
@@ -557,6 +553,14 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-304', category: 'Dark Room', kind: 'challenge', text: "Show the group the last photo you sent that you'd never post publicly." },
   { id: 'exp-184', category: 'Dark Room', kind: 'challenge', text: "Let the group write your hookup-app tagline for the next 24 hours." },
   { id: 'exp-186', category: 'Dark Room', kind: 'challenge', text: "Do your most convincing moan." },
+  { id: 'exp-310', category: 'Dark Room', kind: 'challenge', text: "Hypothesize who in the group has the largest urethra, then check your work." },
+  { id: 'exp-311', category: 'Dark Room', kind: 'challenge', text: "Compare your areola to the person on your right. Would they date?" },
+  { id: 'exp-188', category: 'Dark Room', kind: 'challenge', text: "Take off one item of clothing. You choose which." },
+  { id: 'exp-189', category: 'Dark Room', kind: 'challenge', text: "Let the table pick one word to describe you in bed." },
+  { id: 'exp-191', category: 'Dark Room', kind: 'challenge', text: "Whisper something filthy to the person on your right. They decide whether to repeat it." },
+  { id: 'exp-194', category: 'Dark Room', kind: 'challenge', text: "Say the filthiest thing you’ve ever said in bed, in the most romantic voice you can manage." },
+  { id: 'exp-195', category: 'Dark Room', kind: 'challenge', text: "Share your current hookup-app profile pic with the group — no context, no explanation." },
+  { id: 'exp-196', category: 'Dark Room', kind: 'challenge', text: "Dig up your most catfish Grindr photo — the one that owes everyone an apology — and share it." },
 ]
 
 /* ----------------------------------------------------------------- deck --- */
