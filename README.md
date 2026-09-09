@@ -147,11 +147,17 @@ wording by a regex, which is not a thing a regex can do — and `npm test`
 holds every Dark Room entry to it. A separate test keeps explicit material
 out of Ian's canonical originals entirely.
 
-Two caveats worth knowing. The Challenge pack still contains a few sexual
-dares that predate this rule (`exp-184`, `exp-186`); they were left where
-they are rather than swept up, and moving them is a decision, not a cleanup.
-And Risqué is an `expansion` pack, not an experimental one — the 20–25 band
-does not apply to it, and it has no subgroups.
+The rule is applied all the way through: the two sexual dares that predated
+it and were still sitting in the general Challenge pack (`exp-184`,
+`exp-186`) have been moved behind the gate, keeping their ids. The Challenge
+pack is non-sexual dares only.
+
+The seam is *dare vs. question*, not *how explicit the subject is*. So
+`exp-302` ("Have you ever used Sniffies? How did that go?") sits in Risqué
+and stays there — it asks something, it doesn't instruct anyone to do
+anything. Risqué is also an `expansion` pack, not an experimental one: the
+20–25 band applies only to AI, Queer Culture and Dark Room, and Risqué has
+no subgroups.
 
 Every switch is free to turn off, Base included — including all of them at
 once. With nothing selected there's no question to draw, so the deck is

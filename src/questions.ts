@@ -424,9 +424,7 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-180', category: 'Challenge', text: "Moonwalk — or attempt to." },
   { id: 'exp-181', category: 'Challenge', text: "Hold eye contact with the person across from you for 30 seconds without laughing." },
   { id: 'exp-182', category: 'Challenge', text: "Do your best animal impression until someone guesses it." },
-  { id: 'exp-184', category: 'Challenge', text: "Let the group write your hookup-app tagline for the next 24 hours." },
   { id: 'exp-185', category: 'Challenge', text: "Text an ex, “I was just thinking about you.” No explanation, no follow-up." },
-  { id: 'exp-186', category: 'Challenge', text: "Do your most convincing moan." },
   { id: 'exp-187', category: 'Challenge', text: "Try your best opening line on the person to your right." },
   { id: 'exp-188', category: 'Challenge', text: "Take off one item of clothing. You choose which." },
   { id: 'exp-189', category: 'Challenge', text: "Let the table pick one word to describe you in bed." },
@@ -557,6 +555,8 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-183', category: 'Dark Room', kind: 'challenge', text: "Read out the last message you sent on a hookup app." },
   { id: 'exp-169', category: 'Dark Room', kind: 'challenge', text: "Have you ever faked an orgasm? Demonstrate." },
   { id: 'exp-304', category: 'Dark Room', kind: 'challenge', text: "Show the group the last photo you sent that you'd never post publicly." },
+  { id: 'exp-184', category: 'Dark Room', kind: 'challenge', text: "Let the group write your hookup-app tagline for the next 24 hours." },
+  { id: 'exp-186', category: 'Dark Room', kind: 'challenge', text: "Do your most convincing moan." },
 ]
 
 /* ----------------------------------------------------------------- deck --- */

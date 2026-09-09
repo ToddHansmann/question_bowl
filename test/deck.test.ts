@@ -308,10 +308,14 @@ test('reworded and moved questions kept their original ids', () => {
   assert.ok(onABreak && /understood it differently/.test(onABreak.text))
   assert.ok(!/Ross|Rachel/.test(onABreak!.text), 'the Friends reference should be gone')
 
-  // Moved packs, same id: the faked-orgasm dare into Dark Room, and the
-  // Sniffies question back out to Risqué.
+  // Moved packs, same id. exp-302 sitting in Risqué is a decision, not an
+  // oversight: it is a question about a hookup app, not a dare, and the
+  // Dark Room rule sorts on that distinction rather than on how explicit the
+  // subject is. Todd confirmed it stays. Don't "tidy" it back behind the gate.
   assert.equal((byId('exp-169') as { category?: string }).category, 'Dark Room')
   assert.equal((byId('exp-302') as { category?: string }).category, 'Risqué')
+  assert.equal((byId('exp-184') as { category?: string }).category, 'Dark Room')
+  assert.equal((byId('exp-186') as { category?: string }).category, 'Dark Room')
 })
 
 /* ------------------------------------------------------ Dark Room / Risqué --- */
@@ -330,7 +334,7 @@ test('the questions moved out of Dark Room are in Risqué', () => {
     assert.ok(risque.includes(id), `${id} should be in Risqué`)
   }
   const dark = expansionQuestions.filter((q) => q.category === 'Dark Room').map((q) => q.id)
-  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-301', 'exp-304'])
+  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-184', 'exp-186', 'exp-301', 'exp-304'])
 })
 
 test('basePool covers exactly the base questions, nothing else', () => {
