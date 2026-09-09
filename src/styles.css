@@ -805,3 +805,97 @@ body {
     transition: none;
   }
 }
+
+/* ------------------------------------------- experimental & consent --- */
+
+/* One line under the Experimental heading, explaining why it's separate. */
+.menu-blurb {
+  margin: 6px 0 2px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+
+/*
+ * Dark Room isn't listed until someone asks for it. This is that ask —
+ * plain text, no switch, so it can't be flipped on by a stray tap while
+ * scrolling the list.
+ */
+.menu-reveal {
+  margin-top: 14px;
+  padding: 12px 2px;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  background: none;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  opacity: 0.62;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-reveal:hover,
+.menu-reveal:active {
+  opacity: 0.85;
+}
+
+.menu-reveal:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.menu-consent {
+  margin: 0 0 20px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* Agreeing is the deliberate act, so it gets the solid button; declining is
+   a quiet link. Neither is preselected and neither is the default. */
+.menu-consent-yes {
+  padding: 0.8em 1.4em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bowl-top);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-consent-no {
+  margin-top: 12px;
+  padding: 8px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-consent-yes:focus-visible,
+.menu-consent-no:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+  border-radius: 999px;
+}

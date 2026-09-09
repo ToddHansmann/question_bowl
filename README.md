@@ -57,9 +57,23 @@ Everything lives in [`src/questions.ts`](src/questions.ts), in two layers:
 
 - `baseQuestions` — Ian's original 114. **Canonical: do not edit or reorder.**
   Always free.
-- `expansionQuestions` — Todd-created content, each tagged one of the nine
-  categories in `CATEGORIES`: `Warm-up`, `Personal`, `Nostalgia`, `Adulting`,
-  `Travel`, `Messy`, `Dating`, `Risqué`, or `Challenge`.
+- `expansionQuestions` — Todd-created content, each tagged one of the twelve
+  categories in `CATEGORIES`.
+
+Every category is described by a **pack** in `PACKS`, which carries a `tier`
+and an optional `consent` string:
+
+| Tier | Packs | What it means |
+| --- | --- | --- |
+| `expansion` | Warm-up, Personal, Nostalgia, Adulting, Travel, Messy, Dating, Risqué, Challenge | The settled deck. Free, not being measured. |
+| `experimental` | AI, Queer Culture, Dark Room | Deliberately small — 20–25 questions — shipped to find out whether the subject is worth more. |
+
+The tier that isn't written yet is the point of the field. A pack that earns
+its keep gets built out to ~100 questions and moves behind a price; that gate
+reads `tier`, so adding it later is a new tier value and a check, not a
+reshape of the file. **None of that is implemented**, and nothing in the app
+assumes it. `npm test` holds the experimental packs to the 20–25 band so
+"experiment" doesn't quietly become "pack we already committed to".
 
 `questions` is the flat list the app plays (base then expansion), in the same
 shape it has always had. `sourceByIndex` marks each entry `'original'` or
@@ -72,13 +86,39 @@ on question *text* instead — text survives array edits, a position doesn't.
 
 ## Categories
 
-The **☰** button opens a menu with a switch for Base Questions, then the nine
-expansion packs grouped under their own **Expansion Packs** heading — each
-toggles independently, plus an **All Expansion Packs** switch that flips all
-nine at once (it reads as on only when every pack already is; click it from
-any other state and it turns them all on, not off). A question drawn from an
-enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`); base questions
-never get one.
+The **☰** button opens a menu with a switch for Base Questions, then three
+groups: the nine settled packs under **Expansion Packs**, the experiments
+under **Experimental**, and — only once asked for — the gated one. A question
+drawn from an enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`);
+base questions never get one.
+
+**All Expansion Packs** covers the nine settled packs and nothing else. It
+reads as on only when every one of them already is; click it from any other
+state and it turns them all on, not off. The experiments are deliberately
+outside it: the whole point of shipping a small pack is to find out whether
+people choose it, and a switch that turns everything on would destroy that
+signal on the first tap. Gated packs are outside it for a harder reason — a
+bulk switch must never be able to put explicit questions into the shuffle
+without anyone agreeing to them.
+
+### Dark Room
+
+The explicit pack. It isn't listed at all until someone taps **Show the
+explicit pack** at the foot of the menu — plain text, no switch, so it can't
+be flipped on by a stray tap while scrolling. Switching it on then opens a
+consent screen rather than enabling it: what the pack is, and that everyone
+playing has to say yes out loud. **Everyone here agrees** turns it on;
+**Not tonight** returns to the list with it still off.
+
+Switching it *off* never asks. Withdrawing is immediate — needing permission
+to stop would be the wrong shape entirely. Consent is remembered for the rest
+of the page load, so flipping it off and on again doesn't re-ask, and is
+never remembered between visits: it's given by the people at this table,
+tonight, and a previous visit can't grant it.
+
+Sexual challenges live only in this pack. `npm test` enforces the narrow
+version of that — the Sniffies material can only appear inside a
+consent-gated pack, and never in the canonical base deck.
 
 Every switch is free to turn off, Base included — including all of them at
 once. With nothing selected there's no question to draw, so the deck is

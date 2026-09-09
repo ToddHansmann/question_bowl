@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CATEGORIES,
+  GATED_PACKS,
+  OPEN_PACKS,
   categoryByIndex,
   basePool,
+  packFor,
   questions,
   sourceByIndex,
   type Category,
+  type Pack,
 } from './questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from './deck'
 import { SESSION_COMPLETE_AT, trackOnce } from './analytics'
@@ -24,6 +28,20 @@ const FLICK_DISTANCE = 18 // px, when thrown fast
 const FLICK_VELOCITY = 0.55 // px per ms
 const EXIT_MS = 260
 const LANDING_MS = 240 // landing fade before the deck mounts
+
+/**
+ * The menu shows packs in three groups, and they behave differently enough
+ * that the split is worth naming once here rather than filtering inline.
+ *
+ * `ALL_PACKS_SWITCH` covers the settled packs only. The experiments are
+ * deliberately left out of it: the whole point of shipping a small pack is to
+ * find out whether people choose it, and a switch that turns everything on
+ * would destroy that signal on the first tap. Gated packs are excluded for a
+ * harder reason — a bulk switch must never be able to put explicit questions
+ * into the shuffle without anyone agreeing to them.
+ */
+const SETTLED_PACKS = OPEN_PACKS.filter((p) => p.tier === 'expansion')
+const EXPERIMENTAL_PACKS = OPEN_PACKS.filter((p) => p.tier === 'experimental')
 
 /** Shown instead of a question when every category has been switched off. */
 const EMPTY_POOL_SAYINGS = [
@@ -68,7 +86,15 @@ export default function App() {
     () => new Set(),
   )
   const [menuOpen, setMenuOpen] = useState(false)
-  const [menuView, setMenuView] = useState<'categories' | 'suggest'>('categories')
+  const [menuView, setMenuView] = useState<'categories' | 'suggest' | 'consent'>('categories')
+
+  // Dark Room stays out of the list until someone deliberately asks for it,
+  // and then still can't be switched on without everyone agreeing. Both bits
+  // of state are per-page-load on purpose: consent is given by the people at
+  // this table, tonight, and is not something a previous visit can grant.
+  const [gatedRevealed, setGatedRevealed] = useState(false)
+  const [consentPack, setConsentPack] = useState<Pack | null>(null)
+  const [consented, setConsented] = useState<ReadonlySet<Category>>(() => new Set())
 
   // Question text → rating already given it on this device. Hydrated once;
   // kept in sync with localStorage on every change so a rate button's
@@ -106,7 +132,7 @@ export default function App() {
     return p
   }, [baseEnabled, enabledCategories])
 
-  const allPacksEnabled = CATEGORIES.every((c) => enabledCategories.has(c))
+  const allPacksEnabled = SETTLED_PACKS.every((p) => enabledCategories.has(p.category))
   const poolEmpty = pool.length === 0
 
   // Re-rolled each time the pool newly becomes empty, and stable for as long
@@ -181,6 +207,7 @@ export default function App() {
   function closeMenu() {
     setMenuOpen(false)
     setMenuView('categories')
+    setConsentPack(null)
     setSuggestionText('')
     setSuggestionCategory('')
     setSuggestionStatus('idle')
@@ -203,7 +230,24 @@ export default function App() {
     setBaseEnabled((prev) => !prev)
   }
 
+  function enableCategory(category: Category) {
+    setEnabledCategories((prev) => new Set(prev).add(category))
+  }
+
+  /**
+   * Switching a gated pack ON goes via the consent screen the first time
+   * this session. Switching one OFF never asks — withdrawing is always
+   * immediate, and needing permission to stop would be the wrong shape
+   * entirely.
+   */
   function toggleCategory(category: Category) {
+    const pack = packFor(category)
+    const turningOn = !enabledCategories.has(category)
+    if (turningOn && pack.consent && !consented.has(category)) {
+      setConsentPack(pack)
+      setMenuView('consent')
+      return
+    }
     setEnabledCategories((prev) => {
       const next = new Set(prev)
       if (next.has(category)) next.delete(category)
@@ -212,9 +256,24 @@ export default function App() {
     })
   }
 
-  /** One switch for every expansion pack at once. */
+  /** Everyone at the table said yes. Remember it for the rest of the session. */
+  function grantConsent(pack: Pack) {
+    setConsented((prev) => new Set(prev).add(pack.category))
+    enableCategory(pack.category)
+    setConsentPack(null)
+    setMenuView('categories')
+  }
+
+  /** One switch for the settled packs. Experiments and gated packs opt in alone. */
   function toggleAllCategories() {
-    setEnabledCategories(allPacksEnabled ? new Set() : new Set(CATEGORIES))
+    setEnabledCategories((prev) => {
+      const next = new Set(prev)
+      for (const pack of SETTLED_PACKS) {
+        if (allPacksEnabled) next.delete(pack.category)
+        else next.add(pack.category)
+      }
+      return next
+    })
   }
 
   // These close over this render's state, so keep fresh copies for listeners.
@@ -339,6 +398,25 @@ export default function App() {
     drag.current = null
     setDragging(false)
     setOffset(0)
+  }
+
+  /** One switch row. Identical for every pack — the gate lives in toggleCategory. */
+  function packRow(category: Category) {
+    const checked = enabledCategories.has(category)
+    return (
+      <div className="menu-row" key={category}>
+        <span className="menu-row__label">{category}</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-label={`${category} questions`}
+          className="switch"
+          data-checked={checked}
+          onClick={() => toggleCategory(category)}
+        />
+      </div>
+    )
   }
 
   if (!started) {
@@ -511,23 +589,26 @@ export default function App() {
                     />
                   </div>
 
-                  {CATEGORIES.map((category) => {
-                    const checked = enabledCategories.has(category)
-                    return (
-                      <div className="menu-row" key={category}>
-                        <span className="menu-row__label">{category}</span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={checked}
-                          aria-label={`${category} questions`}
-                          className="switch"
-                          data-checked={checked}
-                          onClick={() => toggleCategory(category)}
-                        />
-                      </div>
-                    )
-                  })}
+                  {SETTLED_PACKS.map(({ category }) => packRow(category))}
+
+                  <h3 className="menu-subtitle">Experimental</h3>
+                  <p className="menu-blurb">
+                    Small packs, still finding out if they land.
+                  </p>
+
+                  {EXPERIMENTAL_PACKS.map(({ category }) => packRow(category))}
+
+                  {gatedRevealed ? (
+                    GATED_PACKS.map(({ category }) => packRow(category))
+                  ) : (
+                    <button
+                      type="button"
+                      className="menu-reveal"
+                      onClick={() => setGatedRevealed(true)}
+                    >
+                      Show the explicit pack
+                    </button>
+                  )}
                 </div>
 
                 <button
@@ -536,6 +617,39 @@ export default function App() {
                   onClick={() => setMenuView('suggest')}
                 >
                   Suggest a Question
+                </button>
+              </>
+            ) : menuView === 'consent' && consentPack ? (
+              <>
+                <button
+                  type="button"
+                  className="menu-back"
+                  onClick={() => {
+                    setConsentPack(null)
+                    setMenuView('categories')
+                  }}
+                >
+                  ‹ Categories
+                </button>
+
+                <h2 className="menu-title">{consentPack.category}</h2>
+                <p className="menu-consent">{consentPack.consent}</p>
+                <button
+                  type="button"
+                  className="menu-consent-yes"
+                  onClick={() => grantConsent(consentPack)}
+                >
+                  Everyone here agrees
+                </button>
+                <button
+                  type="button"
+                  className="menu-consent-no"
+                  onClick={() => {
+                    setConsentPack(null)
+                    setMenuView('categories')
+                  }}
+                >
+                  Not tonight
                 </button>
               </>
             ) : (

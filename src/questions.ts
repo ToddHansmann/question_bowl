@@ -27,6 +27,37 @@ export type Category =
   | 'Adulting'
   | 'Travel'
   | 'Nostalgia'
+  // Experimental packs — see PACKS at the foot of this file.
+  | 'AI'
+  | 'Queer Culture'
+  | 'Dark Room'
+
+/**
+ * What a pack is for, which is not the same as what's in it.
+ *
+ * - `expansion` — the settled packs. Free, and not being measured for
+ *   anything; they're just the deck.
+ * - `experimental` — deliberately small, roughly 20–25 questions, shipped to
+ *   find out whether a subject is worth more. The next tier here is the one
+ *   that isn't written yet: a pack that earns its keep gets built out to ~100
+ *   questions and moves behind a price. That gate reads `tier`, so adding it
+ *   later is a new tier value and a check, not a reshape of this file. None
+ *   of it is implemented, and nothing below assumes it.
+ */
+export type Tier = 'expansion' | 'experimental'
+
+export type Pack = {
+  category: Category
+  tier: Tier
+  /**
+   * Present means the pack can't simply be switched on: it stays out of the
+   * main list until deliberately revealed, and everyone at the table has to
+   * agree before it joins the shuffle. The string is what they're agreeing
+   * to. Consent is per-session and never remembered — same as every other
+   * category choice, and for a better reason.
+   */
+  consent?: string
+}
 
 /** Where a question came from — `baseQuestions` vs. `expansionQuestions`. */
 export type Source = 'original' | 'todd'
@@ -197,6 +228,16 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Warm-up', text: "What phase were you convinced was permanent at the time?" },
   { category: 'Warm-up', text: "What's the last thing you searched for that you'd hesitate to say out loud right now?" },
   { category: 'Warm-up', text: "What's your best \"you had to be there\" story from the pandemic — the one that still makes you laugh?" },
+  { category: 'Warm-up', text: "Nobody ever sneezes again. How long before you notice?" },
+  { category: 'Warm-up', text: "If ice cream came in flavours of emotions and ideas, which one are you trying first?" },
+  { category: 'Warm-up', text: "You are stuck in a time loop repeating one thing forever. What are you picking?" },
+  { category: 'Warm-up', text: "What would people in this room assume you had been arrested for?" },
+  { category: 'Warm-up', text: "If one season vanished from the calendar forever, which are you sacrificing?" },
+  { category: 'Warm-up', text: "Where do you actually land on time travel — back, forward, or leave it alone?" },
+  { category: 'Warm-up', text: "Do you have a bird story? Everyone who has one has a strange one." },
+  { category: 'Warm-up', text: "Phone call, voice note, or text — and what does your answer give away about when you were born?" },
+  { category: 'Warm-up', text: "What is something younger people do that you mocked and have quietly started doing?" },
+  { category: 'Warm-up', text: "What is your villain-era self doing right now?" },
 
   /* -- Personal ---------------------------------------------------------- */
   { category: 'Personal', text: "When was the last time you changed your mind about something important?" },
@@ -225,6 +266,13 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Personal', text: "What's a form of self-care everyone raves about that does nothing for you?" },
   { category: 'Personal', text: "How do you know when you've hit your social limit for the day?" },
   { category: 'Personal', text: "What's something you've stopped feeling guilty about doing by yourself?" },
+  { category: 'Personal', text: "You have one hour left and you cannot contact anyone you love. How do you spend it?" },
+  { category: 'Personal', text: "A machine writes the complete and honest account of your life. You may read one chapter. Which one?" },
+  { category: 'Personal', text: "The lever kills one person instead of five. Do you pull it, and how long do you stand there?" },
+  { category: 'Personal', text: "Would you take a pill that permanently removed one memory?" },
+  { category: 'Personal', text: "What have you lost that you still think about?" },
+  { category: 'Personal', text: "If this stretch of your life had a chapter title, what would it be?" },
+  { category: 'Personal', text: "What advice from your younger self would you actually take?" },
 
   /* -- Messy ------------------------------------------------------------- */
   { category: 'Messy', text: "What’s the pettiest thing you’ve ever done?" },
@@ -256,6 +304,7 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Messy', text: "What's a group chat argument that got way more heated than the actual topic deserved?" },
   { category: 'Messy', text: "Did you break your own pandemic rules and never tell anyone?" },
   { category: 'Messy', text: "Have you ever fully checked out at a job while still collecting the paycheck — and for how long did you get away with it?" },
+  { category: 'Messy', text: "Has a stranger ever watched you at your absolute worst in public?" },
 
   /* -- Dating ------------------------------------------------------------ */
   { category: 'Dating', text: "Which celebrity would immediately make you nervous to flirt with?" },
@@ -283,6 +332,9 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Dating', text: "What's the most awkward you've felt being someone's plus-one at a wedding — or bringing a plus-one everyone was skeptical of?" },
   { category: 'Dating', text: "Would you rather find out your partner is bad with money or bad with time?" },
   { category: 'Dating', text: "What's a relationship \"rule\" you and a partner made up that would sound insane to anyone else?" },
+  { category: 'Dating', text: "What is the largest age gap you would be comfortable with, and does the direction change your answer?" },
+  { category: 'Dating', text: "Have you dated someone much older or much younger, and what did it teach you?" },
+  { category: 'Dating', text: "At what point does an age gap stop being anybody else's business?" },
 
   /* -- Risqué ------------------------------------------------------------ */
   { category: 'Risqué', text: "What’s the most memorable hookup you’ve ever had, and what made it stick?" },
@@ -314,6 +366,13 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Risqué', text: "How long was your longest dry spell, and what ended it?" },
   { category: 'Risqué', text: "Have you ever been part of a group scene — and would you seek that out again, or file it under \"once was enough\"?" },
   { category: 'Risqué', text: "How old were you the first time you used a hookup app, and does that number surprise people?" },
+  { category: 'Risqué', text: "Have you ever hooked up with a coworker?" },
+  { category: 'Risqué', text: "Have you ever jerked off at work?" },
+  { category: 'Risqué', text: "Which celebrity was your gay sexual awakening?" },
+  { category: 'Risqué', text: "What is your underwear vibe?" },
+  { category: 'Risqué', text: "During sex, are you noisy or quiet?" },
+  { category: 'Risqué', text: "Which uniform gets you instantly horny?" },
+  { category: 'Risqué', text: "Have you ever faked an orgasm? Demonstrate." },
 
   /* -- Challenge --------------------------------------------------------- */
   { category: 'Challenge', text: "Let the group choose your phone wallpaper until tomorrow." },
@@ -344,6 +403,7 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Challenge', text: "Share your current hookup-app profile pic with the group — no context, no explanation." },
   { category: 'Challenge', text: "Dig up your most catfish Grindr photo — the one that owes everyone an apology — and share it." },
   { category: 'Challenge', text: "Find out who has the longest tongue at the table. Prove it." },
+  { category: 'Challenge', text: "Say your screen time from last week out loud. The exact number." },
 
   /* -- Adulting ------------------------------------------------------------ */
   { category: 'Adulting', text: "What's the most you've ever spent trying to avoid an awkward conversation about money?" },
@@ -357,12 +417,13 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Adulting', text: "What's your relationship with public speaking: thrive, survive, or actively avoid?" },
   { category: 'Adulting', text: "What's your actual daily screen time, and how far off is that from what you'd guess?" },
   { category: 'Adulting', text: "Is there a creator, celebrity, or total stranger online whose life you're weirdly invested in?" },
-  { category: 'Adulting', text: "Have you ever had a genuinely emotional exchange with an AI chatbot?" },
   { category: 'Adulting', text: "What platform do you actually enjoy using, versus the one you use out of habit?" },
   { category: 'Adulting', text: "What's a car repair or home repair you attempted yourself that you now regret?" },
   { category: 'Adulting', text: "Which generation's work ethic do you secretly think you have, regardless of when you were born?" },
   { category: 'Adulting', text: "What's the most \"I am becoming my parents\" financial habit you've picked up?" },
   { category: 'Adulting', text: "Are you chronically early, chronically late, or does it depend entirely on who's waiting for you?" },
+  { category: 'Adulting', text: "What workplace rule were you told was non-negotiable that turned out to be nonsense?" },
+  { category: 'Adulting', text: "What were you told about buying a home that turned out to be a fairy tale?" },
 
   /* -- Travel ---------------------------------------------------------------- */
   { category: 'Travel', text: "Are you an over-packer or an under-packer, and which trip finally proved it?" },
@@ -378,6 +439,8 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Travel', text: "What's your pre-flight ritual, if you have one?" },
   { category: 'Travel', text: "Have you ever lost your passport, wallet, or phone while traveling — and how did that story end?" },
   { category: 'Travel', text: "What's a destination with a five-star reputation that you'd personally give three stars?" },
+  { category: 'Travel', text: "Would you fly somewhere else to have a medical procedure done cheaper?" },
+  { category: 'Travel', text: "What is the most questionable thing you would have done to your body abroad to save money?" },
 
   /* -- Nostalgia --------------------------------------------------------- */
   { category: 'Nostalgia', text: "What was your first car, and do you remember it fondly or is it better left forgotten?" },
@@ -396,6 +459,67 @@ export const expansionQuestions: Expansion[] = [
   { category: 'Nostalgia', text: "How did working from home change you, for better or worse?" },
   { category: 'Nostalgia', text: "What's a place you used to live that you have complicated feelings about?" },
   { category: 'Nostalgia', text: "What childhood friendship do you wish you'd kept, and what happened to it?" },
+  { category: 'Nostalgia', text: "What was the first record, cassette, CD or download you bought with your own money?" },
+  { category: 'Nostalgia', text: "One album for the rest of your life. Pick it, and no changing your mind." },
+  { category: 'Nostalgia', text: "What is your go-to karaoke song, and how honest are you being right now?" },
+  { category: 'Nostalgia', text: "What was your first username, and what does it say about you?" },
+  { category: 'Nostalgia', text: "Which generation had it easiest, and can you defend that?" },
+  { category: 'Nostalgia', text: "What technology did you have to learn as an adult that children now simply know?" },
+  { category: 'Nostalgia', text: "What did dating look like when you started, and would you survive dating now?" },
+  { category: 'Nostalgia', text: "What did your parents' generation get right that yours has quietly dropped?" },
+
+  /* -- AI (experimental) ------------------------------------------------- */
+  { category: 'AI', text: "Have you ever had a genuinely emotional exchange with an AI chatbot?" },
+  { category: 'AI', text: "Have you ever thanked an AI, and did you mean it?" },
+  { category: 'AI', text: "What have you told an AI that you have not told anyone in this room?" },
+  { category: 'AI', text: "Would you be hurt if a friend used AI to write your birthday message?" },
+  { category: 'AI', text: "If a machine could do most of your job tomorrow, are you relieved or terrified?" },
+  { category: 'AI', text: "Would you date someone who talks to an AI companion every day?" },
+  { category: 'AI', text: "What is the last thing you asked an AI that you would rather not say out loud?" },
+  { category: 'AI', text: "Do you trust a machine's medical advice more or less than a doctor you waited six weeks to see?" },
+  { category: 'AI', text: "If an AI wrote a song that made you cry, does it still count?" },
+  { category: 'AI', text: "Who would you least want replaced by a machine — your therapist, your doctor, or your barista?" },
+  { category: 'AI', text: "Have you ever changed your mind because an AI argued with you?" },
+  { category: 'AI', text: "If a machine could imitate your voice perfectly, who would you have it call?" },
+  { category: 'AI', text: "Would you want to know if the person you matched with wrote their profile with AI?" },
+  { category: 'AI', text: "What job should never be automated, however good the machine gets?" },
+  { category: 'AI', text: "If an AI remembered everything you ever told it, is that intimacy or surveillance?" },
+  { category: 'AI', text: "Is something you made less yours because a machine helped make it?" },
+  { category: 'AI', text: "Would you let an AI read your messages if it made you a better partner?" },
+  { category: 'AI', text: "If a machine says it is conscious, what would actually convince you?" },
+  { category: 'AI', text: "What would you want deleted before an AI got to know you?" },
+  { category: 'AI', text: "How long could you work without AI before anyone noticed the difference?" },
+  { category: 'AI', text: "Would you want a version of yourself that kept talking to your family after you died?" },
+  { category: 'AI', text: "What is the most human thing you think a machine will never manage?" },
+  { category: 'AI', text: "Has AI ever made you feel worse about your own creativity?" },
+
+  /* -- Queer Culture (experimental) -------------------------------------- */
+  { category: 'Queer Culture', text: "What is an unpopular opinion you hold about a queer icon?" },
+  { category: 'Queer Culture', text: "What is something extremely gay you did while closeted and thought nobody clocked?" },
+  { category: 'Queer Culture', text: "Who clocked you before you clocked yourself?" },
+  { category: 'Queer Culture', text: "What is the first queer character you saw on screen who felt real?" },
+  { category: 'Queer Culture', text: "Which queer bar or space do you still miss?" },
+  { category: 'Queer Culture', text: "What piece of queer slang do you refuse to use?" },
+  { category: 'Queer Culture', text: "What is the straightest thing about you?" },
+  { category: 'Queer Culture', text: "What did you think being queer would cost you that it never did?" },
+  { category: 'Queer Culture', text: "Which Pride would you rather forget?" },
+  { category: 'Queer Culture', text: "What is the best coming-out reaction you have ever heard about — yours or someone else's?" },
+  { category: 'Queer Culture', text: "Which queer stereotype do you fit almost exactly, and how do you feel about that?" },
+  { category: 'Queer Culture', text: "What does the community do that you wish it would stop doing?" },
+  { category: 'Queer Culture', text: "Who was the first person you told, and would you pick them again?" },
+  { category: 'Queer Culture', text: "What queer film or show is genuinely bad and you would defend it anyway?" },
+  { category: 'Queer Culture', text: "Which queer elder do you wish you had met?" },
+  { category: 'Queer Culture', text: "Is there a label you tried on and handed back?" },
+  { category: 'Queer Culture', text: "What is the most useful thing an older queer person ever told you?" },
+  { category: 'Queer Culture', text: "What do straight people most misunderstand about queer friendship?" },
+  { category: 'Queer Culture', text: "What song turns any room into a gay bar?" },
+  { category: 'Queer Culture', text: "What is the gayest thing you own?" },
+  { category: 'Queer Culture', text: "Have you ever felt not queer enough for a queer space?" },
+  { category: 'Queer Culture', text: "What queer tradition would you like to invent?" },
+
+  /* -- Dark Room (experimental, consent-gated) --------------------------- */
+  { category: 'Dark Room', text: "Share your Sniffies profile picture with the group." },
+  { category: 'Dark Room', text: "Have you ever used Sniffies? How did that go?" },
 ]
 
 /* ----------------------------------------------------------------- deck --- */
@@ -406,18 +530,46 @@ export const questions: string[] = [
   ...expansionQuestions.map((q) => q.text),
 ]
 
-/** Every expansion category, in menu order. */
-export const CATEGORIES: Category[] = [
-  'Warm-up',
-  'Personal',
-  'Nostalgia',
-  'Adulting',
-  'Travel',
-  'Messy',
-  'Dating',
-  'Risqué',
-  'Challenge',
+/**
+ * Every pack, in menu order: the settled ones first, then the experiments,
+ * then the one nobody sees until they ask for it.
+ */
+export const PACKS: Pack[] = [
+  { category: 'Warm-up', tier: 'expansion' },
+  { category: 'Personal', tier: 'expansion' },
+  { category: 'Nostalgia', tier: 'expansion' },
+  { category: 'Adulting', tier: 'expansion' },
+  { category: 'Travel', tier: 'expansion' },
+  { category: 'Messy', tier: 'expansion' },
+  { category: 'Dating', tier: 'expansion' },
+  { category: 'Risqué', tier: 'expansion' },
+  { category: 'Challenge', tier: 'expansion' },
+
+  { category: 'AI', tier: 'experimental' },
+  { category: 'Queer Culture', tier: 'experimental' },
+
+  {
+    category: 'Dark Room',
+    tier: 'experimental',
+    consent:
+      'Dark Room is explicit. It asks about sex directly and some of it is a dare, not a question. Nothing in it belongs in a room where one person has not agreed to it — so before it goes into the shuffle, everyone playing needs to say yes out loud.',
+  },
 ]
+
+/** Every expansion category, in menu order. Unchanged shape; derived now. */
+export const CATEGORIES: Category[] = PACKS.map((p) => p.category)
+
+/** Packs listed plainly in the menu — everything without a consent gate. */
+export const OPEN_PACKS: Pack[] = PACKS.filter((p) => !p.consent)
+
+/** Packs that have to be revealed and agreed to before they can be enabled. */
+export const GATED_PACKS: Pack[] = PACKS.filter((p) => p.consent)
+
+export function packFor(category: Category): Pack {
+  const pack = PACKS.find((p) => p.category === category)
+  if (!pack) throw new Error('no pack for category: ' + category)
+  return pack
+}
 
 /**
  * Category for each index in `questions` — `null` marks an original base

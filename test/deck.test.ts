@@ -4,10 +4,14 @@
 import assert from 'node:assert/strict'
 import {
   CATEGORIES,
+  GATED_PACKS,
+  OPEN_PACKS,
+  PACKS,
   basePool,
   baseQuestions,
   categoryByIndex,
   expansionQuestions,
+  packFor,
   questions,
   sourceByIndex,
 } from '../src/questions'
@@ -157,9 +161,86 @@ test('every question is reachable', () => {
 
 /* --------------------------------------------------- category pooling --- */
 
-test('the Sniffies question was removed and appears nowhere in the deck', () => {
-  const hit = questions.find((q) => /sniffies/i.test(q))
-  assert.equal(hit, undefined, `still present: ${hit}`)
+/*
+ * The Sniffies question used to be banned outright — it was pulled from
+ * Risqué by request and a test held it out. It is back, on purpose, in the
+ * one pack built to hold it. So the rule tightens rather than disappears:
+ * the explicit material may exist, but only behind the consent gate. That is
+ * the actual product rule ("sexual challenges live only in Dark Room"), and
+ * it is worth far more as a test than the blanket ban was.
+ */
+test('the Sniffies material lives only inside a consent-gated pack', () => {
+  const gated = GATED_PACKS.map((p) => p.category)
+  // Deliberately narrow. An earlier draft of this matched /grindr/ too and
+  // tripped on "What does your Grindr profile claim about you that isn't
+  // strictly true?" — a Risqué question that has always been fine there.
+  // Naming a hookup app is not the thing being gated; being a sexual dare
+  // is, and no regex finds that. So this guards the specific material that
+  // was pulled from Risqué and reinstated in Dark Room, and the pack sizes
+  // and consent copy are tested separately below.
+  const sniffies = /sniffies/i
+  for (const q of expansionQuestions) {
+    if (sniffies.test(q.text)) {
+      assert.ok(
+        gated.includes(q.category),
+        `Sniffies question outside a gated pack (${q.category}): ${q.text}`,
+      )
+    }
+  }
+  for (const q of baseQuestions) {
+    assert.ok(!sniffies.test(q), `explicit question in the canonical base deck: ${q}`)
+  }
+})
+
+test('Dark Room is gated, and it is the only gated pack', () => {
+  assert.deepEqual(
+    GATED_PACKS.map((p) => p.category),
+    ['Dark Room'],
+  )
+  const dark = packFor('Dark Room')
+  assert.ok(dark.consent && dark.consent.length > 40, 'gated pack needs real consent copy')
+  assert.ok(
+    !OPEN_PACKS.some((p) => p.category === 'Dark Room'),
+    'a gated pack must not be listed openly',
+  )
+})
+
+test('PACKS describes every category exactly once, in menu order', () => {
+  assert.deepEqual(
+    PACKS.map((p) => p.category),
+    CATEGORIES,
+  )
+  assert.equal(new Set(PACKS.map((p) => p.category)).size, PACKS.length)
+  const used = new Set(expansionQuestions.map((q) => q.category))
+  for (const c of used) assert.ok(CATEGORIES.includes(c), `question in unknown pack: ${c}`)
+  for (const p of PACKS) {
+    assert.ok(used.has(p.category), `pack with no questions: ${p.category}`)
+  }
+  assert.deepEqual(
+    [...OPEN_PACKS, ...GATED_PACKS].map((p) => p.category).sort(),
+    CATEGORIES.slice().sort(),
+    'every pack is either open or gated',
+  )
+})
+
+/*
+ * Experimental packs are a measurement, not a deck: roughly 20-25 questions,
+ * enough to tell whether a subject is worth building out and not so many
+ * that building it out was already the decision. Dark Room is exempt while
+ * its remaining questions sit with Todd for approval — it would otherwise
+ * fail at two, which is exactly the state the exemption is describing.
+ */
+test('experimental packs stay in the 20-25 band', () => {
+  const size = (c: string) => expansionQuestions.filter((q) => q.category === c).length
+  for (const p of PACKS) {
+    if (p.tier !== 'experimental' || p.consent) continue
+    const n = size(p.category)
+    assert.ok(n >= 20 && n <= 25, `${p.category} has ${n} questions, want 20-25`)
+  }
+})
+
+test('the canonical base deck is still exactly 114 questions', () => {
+  assert.equal(baseQuestions.length, 114, 'the free core must not drift')
 })
 
 test('basePool covers exactly the base questions, nothing else', () => {
