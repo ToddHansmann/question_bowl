@@ -147,10 +147,18 @@ wording by a regex, which is not a thing a regex can do — and `npm test`
 holds every Dark Room entry to it. A separate test keeps explicit material
 out of Ian's canonical originals entirely.
 
-The rule is applied all the way through: the two sexual dares that predated
-it and were still sitting in the general Challenge pack (`exp-184`,
-`exp-186`) have been moved behind the gate, keeping their ids. The Challenge
-pack is non-sexual dares only.
+The rule is applied all the way through. Fourteen dares that predated it were
+still sitting in the general Challenge pack, where anyone flipping that
+switch met them with no consent screen; all fourteen moved behind the gate,
+keeping their ids. **Challenge is non-sexual dares only** — party stuff:
+push-ups, accents, impressions, a moonwalk. Anything that touches sex,
+undressing, hookup apps, or ranking each other's bodies is in Dark Room.
+
+The line was drawn generously on purpose. A shoulder massage and "try your
+best opening line" aren't sexual by most readings, but they involve touching
+or coming on to the person next to you, and that is exactly the kind of thing
+a table should have opted into first. When a dare was arguable, it went
+behind the gate.
 
 The seam is *dare vs. question*, not *how explicit the subject is*. So
 `exp-302` ("Have you ever used Sniffies? How did that go?") sits in Risqué

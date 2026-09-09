@@ -426,12 +426,6 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-180', category: 'Challenge', text: "Moonwalk — or attempt to." },
   { id: 'exp-181', category: 'Challenge', text: "Hold eye contact with the person across from you for 30 seconds without laughing." },
   { id: 'exp-182', category: 'Challenge', text: "Do your best animal impression until someone guesses it." },
-  { id: 'exp-185', category: 'Challenge', text: "Text an ex, “I was just thinking about you.” No explanation, no follow-up." },
-  { id: 'exp-187', category: 'Challenge', text: "Try your best opening line on the person to your right." },
-  { id: 'exp-190', category: 'Challenge', text: "Give the person to your left a fifteen-second shoulder massage." },
-  { id: 'exp-192', category: 'Challenge', text: "Rank the table by who would be the best kisser. Out loud, with reasons." },
-  { id: 'exp-193', category: 'Challenge', text: "Describe your type in three words, then let the table rule on whether that’s really true." },
-  { id: 'exp-197', category: 'Challenge', text: "Find out who has the longest tongue at the table. Prove it." },
   { id: 'exp-198', category: 'Challenge', text: "Say your screen time from last week out loud. The exact number." },
 
   /* -- Adulting ------------------------------------------------------------ */
@@ -559,8 +553,21 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-189', category: 'Dark Room', kind: 'challenge', text: "Let the table pick one word to describe you in bed." },
   { id: 'exp-191', category: 'Dark Room', kind: 'challenge', text: "Whisper something filthy to the person on your right. They decide whether to repeat it." },
   { id: 'exp-194', category: 'Dark Room', kind: 'challenge', text: "Say the filthiest thing you’ve ever said in bed, in the most romantic voice you can manage." },
-  { id: 'exp-195', category: 'Dark Room', kind: 'challenge', text: "Share your current hookup-app profile pic with the group — no context, no explanation." },
+  {
+    id: 'exp-195',
+    category: 'Dark Room',
+    kind: 'challenge',
+    text: "Share your current hookup-app profile pic with the group — no context, no explanation.",
+    retired:
+      'Retired 2026-09-09: near-duplicate of exp-301, which asks for the same thing (your hookup-app profile picture, shown to the table) in fewer words and names the app. exp-301 is the stronger version and stays. Kept here with its id so anything ever rated against it still resolves.',
+  },
   { id: 'exp-196', category: 'Dark Room', kind: 'challenge', text: "Dig up your most catfish Grindr photo — the one that owes everyone an apology — and share it." },
+  { id: 'exp-185', category: 'Dark Room', kind: 'challenge', text: "Text an ex, “I was just thinking about you.” No explanation, no follow-up." },
+  { id: 'exp-187', category: 'Dark Room', kind: 'challenge', text: "Try your best opening line on the person to your right." },
+  { id: 'exp-190', category: 'Dark Room', kind: 'challenge', text: "Give the person to your left a fifteen-second shoulder massage." },
+  { id: 'exp-192', category: 'Dark Room', kind: 'challenge', text: "Rank the table by who would be the best kisser. Out loud, with reasons." },
+  { id: 'exp-193', category: 'Dark Room', kind: 'challenge', text: "Describe your type in three words, then let the table rule on whether that’s really true." },
+  { id: 'exp-197', category: 'Dark Room', kind: 'challenge', text: "Find out who has the longest tongue at the table. Prove it." },
 ]
 
 /* ----------------------------------------------------------------- deck --- */

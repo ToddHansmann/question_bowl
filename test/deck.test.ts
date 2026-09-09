@@ -321,6 +321,8 @@ test('reworded and moved questions kept their original ids', () => {
 /* ------------------------------------------------------ Dark Room / Risqué --- */
 
 test('Dark Room contains challenges only', () => {
+  // Retired entries included on purpose: a retired dare is still a dare, and
+  // if one were ever un-retired it must not slip back in mislabelled.
   const dark = expansionQuestions.filter((q) => q.category === 'Dark Room')
   assert.ok(dark.length > 0, 'Dark Room should not be empty')
   for (const q of dark) {
@@ -328,13 +330,44 @@ test('Dark Room contains challenges only', () => {
   }
 })
 
+/*
+ * The other half of the same rule, and the one that actually caught something:
+ * checking only from Dark Room's side let six sexual dares sit in the open
+ * Challenge pack for three sessions, where anyone flipping that switch met
+ * them with no consent screen at all. Assert it from both directions.
+ */
+test('no challenge sits outside the consent gate', () => {
+  const stray = expansionQuestions.filter(
+    (q) => q.kind === 'challenge' && q.category !== 'Dark Room',
+  )
+  assert.deepEqual(stray.map((q) => q.id), [], 'challenge outside Dark Room')
+})
+
+test('exp-195 is retired, not deleted', () => {
+  const q = expansionQuestions.find((e) => e.id === 'exp-195')
+  assert.ok(q, 'exp-195 must still exist — ratings are filed under it')
+  assert.ok(q!.retired && q!.retired.length > 20, 'a retirement needs a stated reason')
+  assert.ok(
+    !questions.includes(q!.text),
+    'a retired question must never be dealt',
+  )
+})
+
 test('the questions moved out of Dark Room are in Risqué', () => {
   const risque = expansionQuestions.filter((q) => q.category === 'Risqué').map((q) => q.id)
   for (const id of ['exp-302', 'exp-305', 'exp-306', 'exp-307', 'exp-308', 'exp-309']) {
     assert.ok(risque.includes(id), `${id} should be in Risqué`)
   }
-  const dark = expansionQuestions.filter((q) => q.category === 'Dark Room').map((q) => q.id)
-  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-184', 'exp-186', 'exp-188', 'exp-189', 'exp-191', 'exp-194', 'exp-195', 'exp-196', 'exp-301', 'exp-304', 'exp-310', 'exp-311'])
+  // The active roster — what a table can actually be dealt.
+  const dark = expansionQuestions
+    .filter((q) => q.category === 'Dark Room' && !q.retired)
+    .map((q) => q.id)
+  assert.deepEqual(dark.sort(), [
+    'exp-169', 'exp-183', 'exp-184', 'exp-185', 'exp-186', 'exp-187',
+    'exp-188', 'exp-189', 'exp-190', 'exp-191', 'exp-192', 'exp-193',
+    'exp-194', 'exp-196', 'exp-197', 'exp-301', 'exp-304', 'exp-310',
+    'exp-311',
+  ])
 })
 
 test('basePool covers exactly the base questions, nothing else', () => {
