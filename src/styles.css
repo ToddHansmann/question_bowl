@@ -15,17 +15,30 @@
 html,
 body {
   height: 100%;
-  /*
-   * iOS home-screen PWAs (standalone launch, no Safari chrome) can compute
-   * height:100% a little short of the true screen, leaving a sliver of the
-   * system's default white below the safe area — invisible in a normal
-   * Safari tab, only ever seen from the Home Screen. `dvh` tracks the actual
-   * visible viewport instead of a percentage chain, so it fills correctly in
-   * standalone mode; unsupported browsers just keep the height:100% above.
-   */
-  min-height: 100dvh;
   margin: 0;
-  background: var(--bowl-gradient);
+  /*
+   * The white bar along the bottom of the iOS Home Screen PWA was never a
+   * sizing problem. `viewport-fit=cover` plus `black-translucent` already
+   * hands the page the full screen, and every full-bleed screen below is
+   * `position: fixed; inset: 0`, so the box was always the right shape — an
+   * earlier pass added `min-height: 100dvh` on the strength of that theory,
+   * it changed nothing on device, and it has been removed again here.
+   *
+   * The cause is colour, not size. A `linear-gradient` is a background
+   * *image*, and the `background` shorthand resets `background-color` to
+   * `transparent` — so this document had no background colour at all,
+   * anywhere. iOS paints the strip it owns in standalone mode (the
+   * home-indicator band below the safe area, and any rubber-band gutter)
+   * with the document's background *colour*; transparent falls back to the
+   * canvas default, which is white. Naming a colour behind the gradient is
+   * the entire fix. `--bowl-bottom` is the gradient's own bottom stop, so
+   * the seam is invisible.
+   *
+   * Costs nothing anywhere else: in Safari and on desktop the gradient is
+   * opaque and covers this completely.
+   */
+  background-color: var(--bowl-bottom);
+  background-image: var(--bowl-gradient);
   color: var(--ink);
   overflow: hidden;
   overscroll-behavior: none;
@@ -58,7 +71,6 @@ body {
 .screen {
   position: fixed;
   inset: 0;
-  min-height: 100dvh;
   display: block;
   background: var(--bowl-gradient);
   touch-action: none;
@@ -91,7 +103,6 @@ body {
 .landing {
   position: fixed;
   inset: 0;
-  min-height: 100dvh;
   display: grid;
   place-items: center;
   background: var(--bowl-gradient);
@@ -203,7 +214,6 @@ body {
 .empty {
   position: fixed;
   inset: 0;
-  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding-inline: clamp(28px, 8vw, 72px);
@@ -415,8 +425,18 @@ body {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.rate__btn:hover:not(:disabled) {
-  opacity: 1;
+/*
+ * Hover only where a real pointer exists. iOS leaves `:hover` stuck on the
+ * last element tapped until something else is tapped, so after rating a
+ * question the button kept `opacity: 1` — visually identical to
+ * `[data-selected='true']` — and carried that look straight into the next
+ * question, which reads as "the thumbs-up is still selected". The rating
+ * state itself was always correct; only the paint was wrong.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .rate__btn:hover:not(:disabled) {
+    opacity: 1;
+  }
 }
 
 .rate__btn:active:not(:disabled) {
