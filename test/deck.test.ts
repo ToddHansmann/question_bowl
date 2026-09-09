@@ -3,6 +3,8 @@
  */
 import assert from 'node:assert/strict'
 import {
+  ALL_BY_ID,
+  BASE_DECK,
   CATEGORIES,
   GATED_PACKS,
   OPEN_PACKS,
@@ -12,6 +14,7 @@ import {
   categoryByIndex,
   expansionQuestions,
   packFor,
+  questionIdByIndex,
   questions,
   sourceByIndex,
 } from '../src/questions'
@@ -43,13 +46,20 @@ test('the deck has questions and no duplicates', () => {
   )
 })
 
-test('the base deck is intact at 114 questions', () => {
-  assert.equal(baseQuestions.length, 114)
+test('the base deck is intact, minus whatever has been retired', () => {
+  assert.equal(BASE_DECK.length, 114, 'an original was deleted rather than retired')
+  const retired = BASE_DECK.filter((q) => q.retired).length
+  assert.equal(baseQuestions.length, 114 - retired)
 })
 
 test('the deck is the base deck plus the expansion, in that order', () => {
-  assert.equal(questions.length, baseQuestions.length + expansionQuestions.length)
-  assert.deepEqual(questions.slice(0, 114), baseQuestions, 'base questions were altered')
+  const activeExpansion = expansionQuestions.filter((q) => !q.retired)
+  assert.equal(questions.length, baseQuestions.length + activeExpansion.length)
+  assert.deepEqual(
+    questions.slice(0, baseQuestions.length),
+    baseQuestions,
+    'base questions were altered',
+  )
 })
 
 test('no expansion question duplicates a base question', () => {
@@ -162,33 +172,25 @@ test('every question is reachable', () => {
 /* --------------------------------------------------- category pooling --- */
 
 /*
- * The Sniffies question used to be banned outright — it was pulled from
- * Risqué by request and a test held it out. It is back, on purpose, in the
- * one pack built to hold it. So the rule tightens rather than disappears:
- * the explicit material may exist, but only behind the consent gate. That is
- * the actual product rule ("sexual challenges live only in Dark Room"), and
- * it is worth far more as a test than the blanket ban was.
+ * This rule has now moved twice, so it is worth writing down where it landed.
+ *
+ * First the Sniffies question was banned outright and a test held it out of
+ * the deck. Then it came back and the test narrowed to "explicit material
+ * only behind the consent gate". Todd's 2026-09-09 decision splits it along a
+ * different seam entirely: Dark Room is *challenges* only, and explicit
+ * questions belong in Risqué — which is where that question originally lived
+ * and has now returned to.
+ *
+ * So the gated-pack half of the old test is gone: it would now fail on a
+ * placement that is deliberate. What survives is the half that is still true
+ * and still worth guarding — none of this belongs in Ian's canonical
+ * originals. The challenges-only rule is enforced on its own below, on the
+ * declared `kind` rather than on a guess about wording.
  */
-test('the Sniffies material lives only inside a consent-gated pack', () => {
-  const gated = GATED_PACKS.map((p) => p.category)
-  // Deliberately narrow. An earlier draft of this matched /grindr/ too and
-  // tripped on "What does your Grindr profile claim about you that isn't
-  // strictly true?" — a Risqué question that has always been fine there.
-  // Naming a hookup app is not the thing being gated; being a sexual dare
-  // is, and no regex finds that. So this guards the specific material that
-  // was pulled from Risqué and reinstated in Dark Room, and the pack sizes
-  // and consent copy are tested separately below.
-  const sniffies = /sniffies/i
-  for (const q of expansionQuestions) {
-    if (sniffies.test(q.text)) {
-      assert.ok(
-        gated.includes(q.category),
-        `Sniffies question outside a gated pack (${q.category}): ${q.text}`,
-      )
-    }
-  }
-  for (const q of baseQuestions) {
-    assert.ok(!sniffies.test(q), `explicit question in the canonical base deck: ${q}`)
+test('no explicit material reaches the canonical base deck', () => {
+  const explicit = /sniffies|grindr|orgasm|hookup app/i
+  for (const q of BASE_DECK) {
+    assert.ok(!explicit.test(q.text), `explicit question in the base deck: ${q.text}`)
   }
 })
 
@@ -239,8 +241,96 @@ test('experimental packs stay in the 20-25 band', () => {
   }
 })
 
-test('the canonical base deck is still exactly 114 questions', () => {
-  assert.equal(baseQuestions.length, 114, 'the free core must not drift')
+/*
+ * The 114 are still all here — retiring one takes it out of play, it does not
+ * delete it. BASE_DECK is the archive and stays at 114 forever; baseQuestions
+ * is what gets dealt, and is 113 now that Dido is retired. Ian's originals
+ * stopped being permanently protected on 2026-09-09: they can be retired when
+ * feedback says they aren't working, which is what happened here.
+ */
+test('the canonical base deck still holds all 114 originals', () => {
+  assert.equal(BASE_DECK.length, 114, 'an original was deleted rather than retired')
+})
+
+test('exactly one original is retired, and it is Dido', () => {
+  const retired = BASE_DECK.filter((q) => q.retired)
+  assert.deepEqual(retired.map((q) => q.id), ['base-006'])
+  assert.ok(retired[0].retired!.length > 20, 'a retirement needs a stated reason')
+  assert.equal(baseQuestions.length, 113, 'active originals should be 114 minus Dido')
+})
+
+test('the Dido question is no longer dealt, but is not deleted', () => {
+  assert.ok(
+    !questions.some((q) => /Dido/i.test(q)),
+    'Dido is still in the active deck',
+  )
+  const dido = ALL_BY_ID.get('base-006')
+  assert.ok(dido, 'base-006 must still resolve — ratings are filed under it')
+  assert.ok(/Dido/i.test(dido!.text), 'the retired wording should be kept verbatim')
+})
+
+/* --------------------------------------------------- stable question ids --- */
+
+test('every question has an id, and no id is used twice', () => {
+  const all = [...BASE_DECK, ...expansionQuestions]
+  for (const q of all) {
+    assert.ok(/^(base|exp)-\d{3}$/.test(q.id), `malformed id: ${q.id}`)
+  }
+  assert.equal(new Set(all.map((q) => q.id)).size, all.length, 'duplicate id')
+  assert.equal(ALL_BY_ID.size, all.length)
+})
+
+test('questionIdByIndex lines up with the active deck', () => {
+  assert.equal(questionIdByIndex.length, questions.length)
+  for (let i = 0; i < questions.length; i++) {
+    const entry = ALL_BY_ID.get(questionIdByIndex[i])
+    assert.ok(entry, `no entry for ${questionIdByIndex[i]}`)
+    assert.equal(entry!.text, questions[i], `id/text mismatch at index ${i}`)
+    assert.ok(!entry!.retired, 'a retired question was dealt')
+  }
+})
+
+/*
+ * The point of the ids, pinned. These four questions have been reworded or
+ * moved between packs since they were written, and every rating already filed
+ * against them lives under the id — so if one of these numbers ever changes,
+ * that history silently detaches. Changing the wording is fine and expected;
+ * changing the id is the bug.
+ */
+test('reworded and moved questions kept their original ids', () => {
+  const byId = (id: string) => ALL_BY_ID.get(id)
+
+  const doubleDip = byId('exp-027')
+  assert.ok(doubleDip && /double-dips in the shared bowl/.test(doubleDip.text))
+  assert.ok(!/George/.test(doubleDip!.text), 'the Seinfeld reference should be gone')
+
+  const onABreak = byId('exp-126')
+  assert.ok(onABreak && /understood it differently/.test(onABreak.text))
+  assert.ok(!/Ross|Rachel/.test(onABreak!.text), 'the Friends reference should be gone')
+
+  // Moved packs, same id: the faked-orgasm dare into Dark Room, and the
+  // Sniffies question back out to Risqué.
+  assert.equal((byId('exp-169') as { category?: string }).category, 'Dark Room')
+  assert.equal((byId('exp-302') as { category?: string }).category, 'Risqué')
+})
+
+/* ------------------------------------------------------ Dark Room / Risqué --- */
+
+test('Dark Room contains challenges only', () => {
+  const dark = expansionQuestions.filter((q) => q.category === 'Dark Room')
+  assert.ok(dark.length > 0, 'Dark Room should not be empty')
+  for (const q of dark) {
+    assert.equal(q.kind, 'challenge', `Dark Room entry is not a challenge: ${q.text}`)
+  }
+})
+
+test('the questions moved out of Dark Room are in Risqué', () => {
+  const risque = expansionQuestions.filter((q) => q.category === 'Risqué').map((q) => q.id)
+  for (const id of ['exp-302', 'exp-305', 'exp-306', 'exp-307', 'exp-308', 'exp-309']) {
+    assert.ok(risque.includes(id), `${id} should be in Risqué`)
+  }
+  const dark = expansionQuestions.filter((q) => q.category === 'Dark Room').map((q) => q.id)
+  assert.deepEqual(dark.sort(), ['exp-169', 'exp-183', 'exp-301', 'exp-304'])
 })
 
 test('basePool covers exactly the base questions, nothing else', () => {

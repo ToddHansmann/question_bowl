@@ -46,6 +46,9 @@ type CategoryRow = {
 }
 
 type QuestionRow = CategoryRow & {
+  /** Stable id. The row's identity, and its React key — the text can change. */
+  question_id: string
+  /** Most recent wording recorded for that id, so rewrites show current text. */
   question_text: string
   source: string
   polarization: number
@@ -492,8 +495,11 @@ function QuestionTable({
         </thead>
         <tbody>
           {rows.map((q) => (
-            <tr key={q.question_text}>
-              <td className="adm-q">{q.question_text}</td>
+            <tr key={q.question_id ?? q.question_text}>
+              <td className="adm-q">
+                {q.question_text}
+                {q.question_id && <span className="adm-qid">{q.question_id}</span>}
+              </td>
               <td className="adm-cat">{q.category}</td>
               <td className="num">{n(q.thumbs_up)}</td>
               <td className="num">{n(q.thumbs_down)}</td>

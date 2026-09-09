@@ -55,8 +55,16 @@ command, and output directory — no configuration needed.
 
 Everything lives in [`src/questions.ts`](src/questions.ts), in two layers:
 
-- `baseQuestions` — Ian's original 114. **Canonical: do not edit or reorder.**
-  Always free.
+- `BASE_DECK` — Ian's original 114. **Do not edit or reorder**, and never
+  delete: this array stays at 114 forever. Always free.
+
+  Originals are no longer permanently protected. As of 2026-09-09 one may be
+  **retired** when feedback says it isn't working — set `retired` with a
+  reason and a date, and it stops being dealt. It keeps its id and its exact
+  wording, so every rating ever filed against it stays attached and readable.
+  Retiring is not deleting, and it is still not editing: reword an original
+  and you have quietly changed what all its historical ratings were about.
+  `baseQuestions` is the active subset — 113 today, since Dido is retired.
 - `expansionQuestions` — Todd-created content, each tagged one of the twelve
   categories in `CATEGORIES`.
 
@@ -75,8 +83,24 @@ reshape of the file. **None of that is implemented**, and nothing in the app
 assumes it. `npm test` holds the experimental packs to the 20–25 band so
 "experiment" doesn't quietly become "pack we already committed to".
 
-`questions` is the flat list the app plays (base then expansion), in the same
-shape it has always had. `sourceByIndex` marks each entry `'original'` or
+### Ids
+
+Every question carries an `id` — `base-001`, `exp-172` — assigned once and
+never changed. **Ratings key on the id, not the text.** That is what lets a
+question be reworded, or moved between packs, without orphaning the feedback
+it has already collected; the text is a label, the id is the identity.
+
+Ids are not positions. They were handed out in file order when they were
+introduced, and a new question takes the next number wherever in the file it
+ends up sitting. Renumbering them, or reusing one, silently detaches
+history — so don't.
+
+Three things follow from this, and all three are enforced by `npm test`:
+rewording a question is safe and expected; moving one between packs is safe;
+and `questionIdByIndex` must always line up with `questions`.
+
+`questions` is the flat list the app plays (active base then active
+expansion), in the same shape it has always had. `sourceByIndex` marks each entry `'original'` or
 `'todd'` without changing either array's shape — that's the hook a future
 paid-pack gate would read (`expansionQuestions` is already the exact set of
 "Todd-created" content such a gate would sit in front of; nothing about that
@@ -116,9 +140,18 @@ of the page load, so flipping it off and on again doesn't re-ask, and is
 never remembered between visits: it's given by the people at this table,
 tonight, and a previous visit can't grant it.
 
-Sexual challenges live only in this pack. `npm test` enforces the narrow
-version of that — the Sniffies material can only appear inside a
-consent-gated pack, and never in the canonical base deck.
+**Dark Room is challenges only.** A challenge is a dare; explicit *questions*
+live in Risqué. That split is recorded as data — a `kind: 'challenge'` on
+each Dark Room entry, declared by a person rather than guessed from the
+wording by a regex, which is not a thing a regex can do — and `npm test`
+holds every Dark Room entry to it. A separate test keeps explicit material
+out of Ian's canonical originals entirely.
+
+Two caveats worth knowing. The Challenge pack still contains a few sexual
+dares that predate this rule (`exp-184`, `exp-186`); they were left where
+they are rather than swept up, and moving them is a decision, not a cleanup.
+And Risqué is an `expansion` pack, not an experimental one — the 20–25 band
+does not apply to it, and it has no subgroups.
 
 Every switch is free to turn off, Base included — including all of them at
 once. With nothing selected there's no question to draw, so the deck is

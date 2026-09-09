@@ -324,3 +324,14 @@
 .adm-error {
   color: #b4231a;
 }
+
+/* The stable id, under the wording it currently has. */
+.adm-qid {
+  display: block;
+  margin-top: 3px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  opacity: 0.75;
+}

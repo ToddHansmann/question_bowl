@@ -6,6 +6,7 @@ import {
   categoryByIndex,
   basePool,
   packFor,
+  questionIdByIndex,
   questions,
   sourceByIndex,
   type Category,
@@ -155,10 +156,13 @@ export default function App() {
 
   const currentIndex = deck.history[deck.cursor]
   const current = questions[currentIndex]
+  const currentId = questionIdByIndex[currentIndex]
   const currentCategory = categoryByIndex[currentIndex]
   const currentSource = sourceByIndex[currentIndex]
   const canGoBack = deck.cursor > 0
-  const currentRating = ratings[current]
+  // Keyed on the id, so rewording a question never resurfaces it for someone
+  // who has already had their say about it.
+  const currentRating = ratings[currentId]
 
   /** Advance (1) or retreat (-1), throwing the current question that way. */
   function go(direction: 1 | -1, from: number) {
@@ -197,10 +201,10 @@ export default function App() {
    */
   function rateCurrent(value: RatingValue) {
     if (poolEmpty || currentRating) return
-    const next = { ...ratings, [current]: value }
+    const next = { ...ratings, [currentId]: value }
     setRatings(next)
     saveRatings(next)
-    void submitRating(current, currentCategory, currentSource, value)
+    void submitRating(currentId, current, currentCategory, currentSource, value)
   }
 
   /** Closes the menu and resets it back to the categories view for next time. */
