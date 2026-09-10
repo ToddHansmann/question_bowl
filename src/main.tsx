@@ -1,3 +1,10 @@
+// Imported first, deliberately, and for its side effect only — see its own
+// comment. ES modules fully evaluate an import before anything after it in
+// this file runs, so this throws (in a misconfigured production build) or
+// no-ops (everywhere else) before App, Admin, or analytics' own startup ever
+// gets a chance to.
+import './production-config'
+
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'

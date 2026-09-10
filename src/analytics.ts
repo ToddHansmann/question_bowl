@@ -21,6 +21,7 @@ import { restInsert } from './supabase'
 
 const VISITOR_KEY = 'qb.visitor.v1'
 const TEST_MODE_KEY = 'qb.testMode.v1'
+const EXCLUDE_DEVICE_KEY = 'qb.excludeDevice.v1'
 
 /**
  * How many questions a session has to reach before it counts as "completed".
@@ -100,19 +101,102 @@ export function setTestMode(on: boolean): void {
   }
 }
 
-/** The identity every outbound row carries, so ratings can join to sessions. */
+/* ------------------------------------------------------ device exclusion --- */
+
+/**
+ * Stronger than test mode, and deliberately separate from it. Test mode
+ * still sends every row — just tagged `is_test = true`, filtered out of the
+ * dashboard by default and recoverable with **Include test data** — which is
+ * what lets an admin who forgot to flip it off later confirm what a test
+ * session actually sent, or verify the write path itself is still working.
+ * Excluding a device throws that away: `track()` returns before `restInsert`
+ * is even called, so nothing from an excluded device ever reaches Supabase,
+ * and there is no "include it anyway" for a row that was never sent.
+ *
+ * That trade is deliberate here, not a default — it's opt-in, set only from
+ * its own toggle in the dashboard, and never turned on automatically the way
+ * test mode is on sign-in. A device this is left on for stays fully dark:
+ * worth knowing before relying on it for a device that also plays for real.
+ */
+export function isDeviceExcluded(): boolean {
+  try {
+    return localStorage.getItem(EXCLUDE_DEVICE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function setDeviceExcluded(on: boolean): void {
+  try {
+    localStorage.setItem(EXCLUDE_DEVICE_KEY, on ? 'true' : 'false')
+  } catch {
+    // Nothing to do; the flag just won't persist.
+  }
+}
+
+/**
+ * Flip test mode from a URL — `?qbtest=1` on, `?qbtest=0` off — checked once
+ * at load, before the first event fires. Exists so a browser can be marked
+ * "this is me testing" without signing into /admin first: that path needs an
+ * auth account on *every* device being tested from, which is exactly the
+ * friction that leaves a stray browser untagged and inflating the real
+ * numbers. A link is friction-free by comparison.
+ *
+ * This does not — and, short of fingerprinting or an IP-based identity, can
+ * not — make two browsers on the same phone resolve to one visitor. `visitor_id`
+ * is deliberately per-browser-storage (see module comment), and the
+ * alternative (keying identity off IP address) would be actively wrong for
+ * this app: a room full of players on the same WiFi would collapse into a
+ * single "visitor". Tagging test traffic so it's excluded is the fix that
+ * matches the actual complaint (an admin's own multi-browser testing
+ * inflating the beta's numbers) without breaking real sessions.
+ */
+function initTestModeFromUrl(): void {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has('qbtest')) return
+    setTestMode(params.get('qbtest') !== '0')
+    // Don't leave it sitting in a URL someone might copy and share.
+    params.delete('qbtest')
+    const rest = params.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
+  } catch {
+    // No URL API, or history is locked down — test mode just stays whatever
+    // it already was.
+  }
+}
+
+initTestModeFromUrl()
+
+/**
+ * The identity every outbound row carries, so ratings can join to sessions.
+ * `is_test` covers both flags: an excluded device's ratings and suggestions
+ * still go out (only `track()` short-circuits fully — see `isDeviceExcluded`)
+ * but land tagged, same as test mode, rather than looking like real players.
+ */
 export function attribution(): {
   visitor_id: string
   session_id: string
   is_test: boolean
 } {
-  return { visitor_id: visitorId(), session_id: sessionId, is_test: isTestMode() }
+  return {
+    visitor_id: visitorId(),
+    session_id: sessionId,
+    is_test: isTestMode() || isDeviceExcluded(),
+  }
 }
 
 /* -------------------------------------------------------------- events --- */
 
-/** Record one event. Never throws, never awaited by the UI. */
+/**
+ * Record one event. Never throws, never awaited by the UI. Short-circuits
+ * before `restInsert` — and so before the network — when this device is
+ * excluded: no row is sent, tagged or otherwise. (`restInsert` also refuses
+ * to send off the production host at all, independent of this flag — see
+ * supabase.ts.)
+ */
 export function track(name: string, props: Record<string, unknown> = {}): void {
+  if (isDeviceExcluded()) return
   // `restInsert` already swallows everything; the result is deliberately
   // ignored. An unrecorded event is not worth a broken deck, or even a
   // console warning on every swipe.
