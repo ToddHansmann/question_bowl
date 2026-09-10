@@ -37,6 +37,13 @@ Both come from the **QB Production** Supabase project → Settings → API. The
 same two names go into Vercel's Project Settings → Environment Variables for
 the deployed site.
 
+A third variable — `VITE_PRODUCTION_HOSTNAME` — gates every write (see
+[Keeping test traffic out of the numbers](#keeping-test-traffic-out-of-the-numbers)).
+Nothing is hardcoded: set it to the deployed site's real hostname (currently
+`questionbowl.vercel.app`) in Vercel's **Production** environment, or writes
+from the deployed site refuse themselves and say why in the console. Not
+needed locally — `npm run dev` is caught by `import.meta.env.DEV` regardless.
+
 ## Build it
 
 ```bash
@@ -68,20 +75,18 @@ Everything lives in [`src/questions.ts`](src/questions.ts), in two layers:
 - `expansionQuestions` — Todd-created content, each tagged one of the twelve
   categories in `CATEGORIES`.
 
-Every category is described by a **pack** in `PACKS`, which carries a `tier`
+Every category is described by a **pack** in `PACKS`, which carries a `group`
 and an optional `consent` string:
 
-| Tier | Packs | What it means |
+| Group | Packs | What it means |
 | --- | --- | --- |
-| `expansion` | Warm-up, Personal, Nostalgia, Adulting, Travel, Messy, Dating, Risqué, Challenge | The settled deck. Free, not being measured. |
-| `experimental` | AI, Queer Culture, Dark Room | Deliberately small — 20–25 questions — shipped to find out whether the subject is worth more. |
+| `expansion` | Warm-up, Personal, Nostalgia, Adulting, Travel, Messy, Dating, Queer Culture, AI, Sex | Questions. Shown in the menu's **Expansion Packs** grid. |
+| `challenge` | Dare, Dark Room | Dares, not questions. Shown in their own **Challenges** grid, after every expansion pack, so the two kinds never blur together. |
 
-The tier that isn't written yet is the point of the field. A pack that earns
-its keep gets built out to ~100 questions and moves behind a price; that gate
-reads `tier`, so adding it later is a new tier value and a check, not a
-reshape of the file. **None of that is implemented**, and nothing in the app
-assumes it. `npm test` holds the experimental packs to the 20–25 band so
-"experiment" doesn't quietly become "pack we already committed to".
+AI and Queer Culture shipped small on purpose — under 25 questions each — to
+find out whether the subject was worth building out further. That trial is
+over: both graduated into `expansion` alongside everything else, and nothing
+in this file measures a pack's size against a band anymore.
 
 ### Ids
 
@@ -110,64 +115,58 @@ on question *text* instead — text survives array edits, a position doesn't.
 
 ## Categories
 
-The **☰** button opens a menu with a switch for Base Questions, then three
-groups: the nine settled packs under **Expansion Packs**, the experiments
-under **Experimental**, and — only once asked for — the gated one. A question
-drawn from an enabled pack shows a small eyebrow above it (e.g. `RISQUÉ`);
-base questions never get one.
+The **☰** button opens a menu: a pill at the top that opens **Suggest a
+Question** (it doesn't accept text itself — tapping it is the whole
+interaction), two full-width presets (**Base Questions**, **All Expansion
+Packs**), then two two-column grids of tap-anywhere pills — **Expansion
+Packs**, then **Challenges** — with no separate switch on any of them; the
+whole pill is the toggle, and its fill color is the on/off state. A question
+drawn from an enabled pack shows a small eyebrow above it (e.g. `SEX`); base
+questions never get one. Swiping right anywhere on the open menu dismisses
+it, the same direction that dismisses a card in the deck.
 
-**All Expansion Packs** covers the nine settled packs and nothing else. It
-reads as on only when every one of them already is; click it from any other
-state and it turns them all on, not off. The experiments are deliberately
-outside it: the whole point of shipping a small pack is to find out whether
-people choose it, and a switch that turns everything on would destroy that
-signal on the first tap. Gated packs are outside it for a harder reason — a
-bulk switch must never be able to put explicit questions into the shuffle
-without anyone agreeing to them.
+**All Expansion Packs** covers every `expansion`-group pack except Sex, and
+nothing else. It reads as on only when every one of those already is; tap it
+from any other state and it turns them all on, not off. Sex is outside it for
+a specific reason — a bulk switch must never be able to put a consent-gated
+pack into the shuffle without anyone agreeing to it first.
 
-### Dark Room
+### Sex and Dark Room
 
-The explicit pack. It isn't listed at all until someone taps **Show the
-explicit pack** at the foot of the menu — plain text, no switch, so it can't
-be flipped on by a stray tap while scrolling. Switching it on then opens a
-consent screen rather than enabling it: what the pack is, and that everyone
-playing has to say yes out loud. **Everyone here agrees** turns it on;
-**Not tonight** returns to the list with it still off.
+Both consent-gated, both handled identically, and both listed openly in
+their grid — neither is hidden behind a reveal step. Tapping one that hasn't
+been agreed to yet this session opens a small screen instead of turning it
+on directly: what the pack is, and that everyone playing has to say yes out
+loud. **Everyone here agrees** turns it on; **Not tonight** returns to the
+grid with it still off.
 
-Switching it *off* never asks. Withdrawing is immediate — needing permission
+Switching one *off* never asks. Withdrawing is immediate — needing permission
 to stop would be the wrong shape entirely. Consent is remembered for the rest
 of the page load, so flipping it off and on again doesn't re-ask, and is
 never remembered between visits: it's given by the people at this table,
 tonight, and a previous visit can't grant it.
 
-**Dark Room is challenges only.** A challenge is a dare; explicit *questions*
-live in Risqué. That split is recorded as data — a `kind: 'challenge'` on
-each Dark Room entry, declared by a person rather than guessed from the
-wording by a regex, which is not a thing a regex can do — and `npm test`
-holds every Dark Room entry to it. A separate test keeps explicit material
-out of Ian's canonical originals entirely.
+**Dark Room is dares only.** A dare is not a question; explicit *questions*
+live in Sex. That split is recorded as data — a `kind: 'challenge'` on each
+Dark Room entry, declared by a person rather than guessed from the wording by
+a regex, which is not a thing a regex can do — and `npm test` holds it from
+both directions: every Dark Room entry must carry `kind: 'challenge'`, and no
+entry carrying it may sit outside Dark Room. A separate test keeps explicit
+material out of Ian's canonical originals entirely.
 
-The rule is applied all the way through. Fourteen dares that predated it were
-still sitting in the general Challenge pack, where anyone flipping that
-switch met them with no consent screen; all fourteen moved behind the gate,
-keeping their ids. **Challenge is non-sexual dares only** — party stuff:
-push-ups, accents, impressions, a moonwalk. Anything that touches sex,
-undressing, hookup apps, or ranking each other's bodies is in Dark Room.
-
-The line was drawn generously on purpose. A shoulder massage and "try your
-best opening line" aren't sexual by most readings, but they involve touching
-or coming on to the person next to you, and that is exactly the kind of thing
-a table should have opted into first. When a dare was arguable, it went
-behind the gate.
+**Dare is non-sexual dares only** — party stuff: push-ups, accents,
+impressions, a moonwalk. Anything that touches sex, undressing, hookup apps,
+or ranking each other's bodies is in Dark Room. The line was drawn generously
+on purpose: a shoulder massage and "try your best opening line" aren't
+sexual by most readings, but they involve touching or coming on to the
+person next to you, which is exactly the kind of thing a table should have
+opted into first. When a dare was arguable, it went behind the gate.
 
 The seam is *dare vs. question*, not *how explicit the subject is*. So
-`exp-302` ("Have you ever used Sniffies? How did that go?") sits in Risqué
-and stays there — it asks something, it doesn't instruct anyone to do
-anything. Risqué is also an `expansion` pack, not an experimental one: the
-20–25 band applies only to AI, Queer Culture and Dark Room, and Risqué has
-no subgroups.
+`exp-302` ("Have you ever used Sniffies? How did that go?") sits in Sex and
+stays there — it asks something, it doesn't instruct anyone to do anything.
 
-Every switch is free to turn off, Base included — including all of them at
+Every pill is free to turn off, Base included — including all of them at
 once. With nothing selected there's no question to draw, so the deck is
 replaced by a small empty-state screen instead: the same gradient and
 typography, a one-line joke picked at random from a short list, and a fixed
@@ -190,9 +189,6 @@ removed from the expansion; the base versions were kept. Near-duplicates were
 marked in the data. `npm test` enforces the result: no expansion question may
 duplicate a base question or another expansion question, and every expansion
 question must carry a known category.
-
-One Risqué question was later removed outright by request ("Have you ever
-used Sniffies? How did that go?"), with no replacement.
 
 A second content pass added 93 new questions — topping up the original six
 packs and introducing three new ones (Nostalgia, Adulting, Travel). Every new
@@ -261,11 +257,11 @@ network write to Supabase fails, the local "already rated" mark still holds
 — rather than build a retry queue, a missed vote here and there is treated
 as acceptable given ratings are an editorial signal, not a ledger.
 
-**Suggest a Question** lives inside the existing ☰ menu — tapping it swaps
-the menu panel's content to a small form (question text, optional category
-picker) rather than opening a new overlay or route. Submitting shows a
-plain-text "thanks" in the same panel; there's no separate confirmation
-screen.
+**Suggest a Question** is the pill at the top of the existing ☰ menu —
+tapping it swaps the menu panel's content to a small form (question text,
+optional category picker) rather than opening a new overlay or route.
+Submitting shows a plain-text "thanks" in the same panel; there's no
+separate confirmation screen.
 
 ## Analytics & the admin dashboard
 
@@ -297,8 +293,23 @@ next to the number.
 
 Lives at **/admin**, as its own lazy chunk — the dashboard, its stylesheet
 and the Supabase SDK never reach someone who just came to play. It shows
-traffic, engagement, ratings by category and by question, most liked, most
-polarizing, and the suggestion inbox.
+traffic, engagement, deck counts (Base plus every question and challenge
+category — from `questions.ts` directly, not a query), ratings by category
+and by question, most liked, least liked, most polarizing, every rated
+question, and the suggestion inbox.
+
+Traffic and Engagement carry an **All time / Today** switch. "Today" reads
+`analytics_events`, `question_ratings` and `question_suggestions` directly
+(RLS already grants an admin `select` there — see below) rather than through
+a new RPC, since the existing `admin_*` functions are all-time aggregates
+with no date parameter. Everything else on the page — ratings by category and
+question, the suggestion inbox — stays all-time regardless of the switch; a
+single day rarely has enough ratings for "most liked today" to mean anything.
+
+Most liked, least liked, and most polarizing each show their first 3 rows
+with an **Expand** button revealing up to 8; "Every rated question" is
+deliberately not capped — truncating a list whose whole point is completeness
+would defeat it.
 
 Security is entirely server-side; nothing in the bundle decides it. Sign-in
 is Supabase Auth, every figure comes from a `SECURITY DEFINER` function that
@@ -318,16 +329,81 @@ the deployed project.
 An account that exists but isn't on the allow-list sees zeroes, and the
 dashboard says so rather than pretending there's no traffic.
 
-### Test mode
+### Keeping test traffic out of the numbers
 
-Signing in to the dashboard turns **test mode** on for that device, and it
-can be toggled by hand from the header. Everything that device then sends —
-ratings, suggestions, events — is marked `is_test = true`, and every metric
-excludes test rows unless **Include test data** is ticked. So demoing the app
-on your own phone doesn't quietly become the beta's engagement numbers.
+`VITE_PRODUCTION_HOSTNAME` is checked at three separate points, deliberately
+redundant, each catching what the one before it can't:
 
-It's client-asserted, so a determined visitor could hide their own activity.
-That costs them their own data and nobody else's.
+**1. The build itself refuses to happen.** [`vite.config.ts`](vite.config.ts)
+throws during `vite build` if `VITE_PRODUCTION_HOSTNAME` isn't set — no
+`dist/` gets produced, so a misconfigured Vercel deploy fails in the build
+step and nothing reaches users at all. This is the earliest anything here can
+happen, and the only layer that stops a bad configuration *before* a
+deployment exists.
+
+**2. The running app refuses to start.** [`src/production-config.ts`](src/production-config.ts)
+is imported first, before anything else, in `main.tsx`, and throws if
+`import.meta.env.PROD` is true and `VITE_PRODUCTION_HOSTNAME` is missing or
+empty. This covers the gap layer 1 can't: a production bundle that reached a
+browser without ever going through this repo's own `vite build` (a
+hand-assembled deploy, a build step that bypassed the config). A visitor
+sees a blank page and one console error rather than a site that looks fine
+and quietly saves nothing.
+
+**3. Every write checks it again, against the real hostname.** Every write —
+ratings, suggestions, analytics events — goes through `restInsert` in
+[`src/supabase.ts`](src/supabase.ts), and it refuses to send anything unless
+the page's own hostname matches `VITE_PRODUCTION_HOSTNAME` *exactly* — not
+just "is the variable set" (layers 1 and 2 already covered that), but "is
+this specific page actually running on the configured host." If it isn't,
+writes stop and one clear warning names which it was — once per page load,
+not once per write. `import.meta.env.DEV` catches local dev on its own,
+regardless of hostname or port, with no warning needed there (running
+`vite dev` already means you know you're not in production). A
+production-shaped build on any *other* host — a Vercel preview deployment,
+most likely — hits the hostname mismatch instead. This is the only layer of
+the three that runs continuously rather than once, so it's also the one that
+catches a site later moved to a new hostname without redeploying.
+
+None of the three needs a toggle or anything remembered — all three are just
+always true, as long as the environment variable is set correctly wherever
+the site is actually built and deployed.
+
+**Test mode.** Signing in to the dashboard turns this on for that device, and
+it can be toggled by hand from the header, or set from a URL without signing
+in first — `?qbtest=1` on, `?qbtest=0` off, checked once on load and then
+stripped from the address bar. Everything that device then sends is marked
+`is_test = true` rather than dropped, and every dashboard metric excludes
+test rows unless **Include test data** is ticked — so it's reversible: the
+rows are still there to inspect if something needs debugging later.
+
+**Device exclusion.** A separate, stronger toggle in the dashboard header —
+**Exclude this device from analytics**. Where test mode tags a row, this
+skips `analytics_events` entirely: `track()` returns before `restInsert` is
+even called, so nothing about a page view or session is ever sent from that
+device, tagged or otherwise (ratings and suggestions from an excluded device
+still go out, tagged `is_test`, same as test mode — this is specifically
+about page views and sessions, the numbers a forgotten test browser skews
+most). Unlike test mode, it is never turned on automatically and has to be
+switched on from its own checkbox — the trade it makes (nothing to recover
+later) is deliberate enough that it shouldn't happen by accident. Persists in
+that browser's `localStorage`, same mechanism as everything else here.
+
+None of this is **unique visitor counting** fixed, and it can't be, within
+this app's own constraints: `visitor_id` is a UUID in that browser's own
+`localStorage` (see above), so a different browser on the same phone is,
+correctly by that definition, a different visitor — there's no cross-browser
+signal to dedupe against without an account, a cookie that browser doesn't
+share, or fingerprinting, none of which are on the table here. IP-based
+identity was considered and rejected for the same reason: a roomful of
+players on one host's WiFi would undercount as a single visitor, which is
+worse for this app's actual use than the overcount it would fix. What's above
+is the practical fix for the actual complaint — an admin's own testing
+inflating the real numbers — not a claim that two browsers on one phone will
+ever resolve to one visitor.
+
+All three are client-asserted, so a determined visitor could hide their own
+activity. That costs them their own data and nobody else's.
 
 ## Notes
 

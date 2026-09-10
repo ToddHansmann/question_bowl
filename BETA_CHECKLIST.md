@@ -20,13 +20,25 @@ Vercel builds every push to `main`. Nothing else to configure.
 Vercel → **question_bowl** → the newest deployment reads **Ready**, and its
 commit matches your local `HEAD`.
 
+> If the deployment reads **Failed** instead, check the build log for
+> `VITE_PRODUCTION_HOSTNAME is not set — refusing to build`. That's
+> [`vite.config.ts`](vite.config.ts) doing its job on purpose, not a broken
+> build — see below.
+
 Then open <https://questionbowl.vercel.app> and tap **Roll the First
 Question**. If the deck comes up, the build is good.
 
 > If the site loads but nothing ever saves, the environment variables are
 > missing. Vercel → Settings → Environment Variables needs
-> `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, and they are read at
-> **build** time — set them and redeploy, or they won't take.
+> `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, **and**
+> `VITE_PRODUCTION_HOSTNAME` (set to `questionbowl.vercel.app`, or whatever
+> the site's real hostname is) — all three are read at **build** time, so set
+> them and redeploy, or they won't take. `VITE_PRODUCTION_HOSTNAME` is the
+> newest of the three, and the strictest: missing, the build itself now fails
+> outright (see the note above) rather than deploying — and `restInsert`
+> (src/supabase.ts) refuses to write anything at all if it's ever set to
+> something the page's real hostname doesn't match, on purpose, and says so
+> in the browser console rather than guessing where it's running.
 
 ### 3. Confirm the admin account exists
 
