@@ -3,6 +3,14 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.sipthetea.app" }],
+      "destination": "https://sipthetea.app/:path*",
+      "statusCode": 301
+    }
+  ],
   "rewrites": [
     {
       "source": "/admin",

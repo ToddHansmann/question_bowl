@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "question-bowl",
+      "name": "sip-the-tea",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -15,7 +15,7 @@
       "port": 5173
     },
     {
-      "name": "question-bowl-preview",
+      "name": "sip-the-tea-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",

@@ -25,13 +25,13 @@ commit matches your local `HEAD`.
 > [`vite.config.ts`](vite.config.ts) doing its job on purpose, not a broken
 > build — see below.
 
-Then open <https://questionbowl.vercel.app> and tap **Roll the First
-Question**. If the deck comes up, the build is good.
+Then open <https://sipthetea.app> and tap **Pour the first
+question**. If the deck comes up, the build is good.
 
 > If the site loads but nothing ever saves, the environment variables are
 > missing. Vercel → Settings → Environment Variables needs
 > `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, **and**
-> `VITE_PRODUCTION_HOSTNAME` (set to `questionbowl.vercel.app`, or whatever
+> `VITE_PRODUCTION_HOSTNAME` (set to `sipthetea.app`, or whatever
 > the site's real hostname is) — all three are read at **build** time, so set
 > them and redeploy, or they won't take. `VITE_PRODUCTION_HOSTNAME` is the
 > newest of the three, and the strictest: missing, the build itself now fails
@@ -51,7 +51,7 @@ its own reads every metric as zero.
 
 ### 4. Sign in to /admin
 
-<https://questionbowl.vercel.app/admin> → sign in.
+<https://sipthetea.app/admin> → sign in.
 
 You should see the dashboard, not a wall of zeros. Zeros with a note about the
 allow-list means step 3 isn't done.

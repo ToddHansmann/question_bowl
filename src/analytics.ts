@@ -26,7 +26,7 @@ const EXCLUDE_DEVICE_KEY = 'qb.excludeDevice.v1'
 /**
  * How many questions a session has to reach before it counts as "completed".
  *
- * There's no natural end to a Question Bowl session — the deck never runs
+ * There's no natural end to a Sip the Tea session — the deck never runs
  * out — so completion has to be defined rather than observed. Five is the
  * point where someone has clearly played rather than glanced: past the first
  * question they were handed, past a second out of curiosity, and into a

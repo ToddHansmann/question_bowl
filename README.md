@@ -1,8 +1,8 @@
-# The Question Bowl
+# Sip the Tea
 
 One question, the whole screen. Made for a table of people answering out loud.
 
-Opens on a branded start screen; one tap on **Roll the First Question** drops you
+Opens on a branded start screen; one tap on **Pour the first question** drops you
 into the deck.
 
 - **Swipe left** — a new question you haven't seen
@@ -40,7 +40,7 @@ the deployed site.
 A third variable — `VITE_PRODUCTION_HOSTNAME` — gates every write (see
 [Keeping test traffic out of the numbers](#keeping-test-traffic-out-of-the-numbers)).
 Nothing is hardcoded: set it to the deployed site's real hostname (currently
-`questionbowl.vercel.app`) in Vercel's **Production** environment, or writes
+`sipthetea.app`) in Vercel's **Production** environment, or writes
 from the deployed site refuse themselves and say why in the console. Not
 needed locally — `npm run dev` is caught by `import.meta.env.DEV` regardless.
 

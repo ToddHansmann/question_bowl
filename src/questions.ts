@@ -1,5 +1,5 @@
 /**
- * The Question Bowl — the deck.
+ * Sip the Tea — the deck.
  *
  * `BASE_DECK` is the original deck and is canonical: never edit the wording,
  * never reorder, never delete. It's Ian's original 114 and stays at 114

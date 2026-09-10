@@ -27,12 +27,12 @@ export default defineConfig(({ command, mode }) => {
     const env = loadEnv(mode, '.', 'VITE_')
     if (!env.VITE_PRODUCTION_HOSTNAME) {
       throw new Error(
-        'Question Bowl: VITE_PRODUCTION_HOSTNAME is not set — refusing to build. ' +
+        'Sip the Tea: VITE_PRODUCTION_HOSTNAME is not set — refusing to build. ' +
           'This is a required environment variable: without it, a deployed build ' +
           "would write nothing at all (see restInsert in src/supabase.ts) and there'd " +
           'be no build-time signal that anything was wrong. Set it — in Vercel: ' +
           'Settings → Environment Variables, scoped to Production — to this ' +
-          "site's real hostname (e.g. questionbowl.vercel.app) and build again. " +
+          "site's real hostname (e.g. sipthetea.app) and build again. " +
           'See "Keeping test traffic out of the numbers" in README.md.',
       )
     }

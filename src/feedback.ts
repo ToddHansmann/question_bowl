@@ -37,7 +37,7 @@ export async function submitRating(
     value,
     ...attribution(),
   })
-  if (!ok) console.warn('Question Bowl: rating failed to save')
+  if (!ok) console.warn('Sip the Tea: rating failed to save')
   return ok
 }
 
@@ -48,7 +48,7 @@ export async function submitSuggestion(text: string, category: Category | null):
     suggested_category: category,
     ...attribution(),
   })
-  if (!ok) console.warn('Question Bowl: suggestion failed to save')
+  if (!ok) console.warn('Sip the Tea: suggestion failed to save')
   return ok
 }
 

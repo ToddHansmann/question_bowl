@@ -749,7 +749,7 @@ function Shell({
     <div className="adm">
       <header className="adm-head">
         <h1>
-          Question Bowl <span>analytics</span>
+          Sip the Tea <span>analytics</span>
         </h1>
         {bar}
         {actions}

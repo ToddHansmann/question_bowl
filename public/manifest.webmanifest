@@ -1,6 +1,7 @@
 {
-  "name": "The Question Bowl",
-  "short_name": "Question Bowl",
+  "name": "Sip the Tea",
+  "short_name": "Sip the Tea",
+  "description": "One question at a time. Answer out loud.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -8,9 +9,15 @@
   "theme_color": "#FD3D2F",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

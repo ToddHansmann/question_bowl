@@ -31,7 +31,7 @@
  */
 if (import.meta.env.PROD && !import.meta.env.VITE_PRODUCTION_HOSTNAME) {
   throw new Error(
-    'Question Bowl: VITE_PRODUCTION_HOSTNAME is not set. This build is running in ' +
+    'Sip the Tea: VITE_PRODUCTION_HOSTNAME is not set. This build is running in ' +
       "production without it, which should not be possible — this repo's own " +
       'build (vite.config.ts) refuses to produce one. Set it in the deployment ' +
       "platform's environment variables (Production scope) to this site's real " +

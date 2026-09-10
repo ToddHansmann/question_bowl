@@ -559,12 +559,12 @@ export default function App() {
       <section className={`landing ${leaving ? 'landing--out' : ''}`}>
         <div className="landing__inner">
           <h1 className="landing__title">
-            <span className="landing__the">The</span>{' '}
-            <span className="landing__name">Question Bowl</span>
+            <span className="landing__the">Sip the</span>{' '}
+            <span className="landing__name">Tea</span>
           </h1>
           <p className="landing__tagline">Answer out loud.</p>
           <button type="button" className="cta" onClick={start}>
-            Roll the First Question 🎲
+            Pour the first question 🫖
           </button>
         </div>
       </section>

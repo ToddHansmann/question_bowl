@@ -44,7 +44,7 @@ function warnOnce(): void {
   if (warned) return
   warned = true
   console.warn(
-    'Question Bowl: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — ratings, suggestions and analytics will not be saved.',
+    'Sip the Tea: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — ratings, suggestions and analytics will not be saved.',
   )
 }
 
@@ -84,7 +84,7 @@ function isProductionHost(): boolean {
     if (!hostWarned) {
       hostWarned = true
       console.warn(
-        'Question Bowl: VITE_PRODUCTION_HOSTNAME is not set — refusing to write rather than guess this is production.',
+        'Sip the Tea: VITE_PRODUCTION_HOSTNAME is not set — refusing to write rather than guess this is production.',
       )
     }
     return false
@@ -95,7 +95,7 @@ function isProductionHost(): boolean {
     if (!hostWarned) {
       hostWarned = true
       console.warn(
-        `Question Bowl: hostname (${window.location.hostname}) does not match VITE_PRODUCTION_HOSTNAME (${configured}) — writes are no-ops here.`,
+        `Sip the Tea: hostname (${window.location.hostname}) does not match VITE_PRODUCTION_HOSTNAME (${configured}) — writes are no-ops here.`,
       )
     }
   } catch {
