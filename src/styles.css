@@ -507,14 +507,20 @@ body {
   }
 }
 
+/*
+ * The entrance slide-in lives here, as a CSS `animation`. The swipe-to-
+ * dismiss drag/throw lives on `.menu-panel__inner` below, as a `transition`
+ * driven by an inline `style`, on purpose kept off this element: a forwards-
+ * filling `animation` outranks a later inline `transform` change on the same
+ * element (same reason `.slot`'s entrance and `.q-wrap`'s drag are two
+ * elements in the deck itself), so splitting them is what lets the drag
+ * actually move anything once the entrance animation has settled.
+ */
 .menu-panel {
   position: absolute;
   inset: 0 0 0 auto;
   width: min(84vw, 320px);
-  display: flex;
-  flex-direction: column;
   background: var(--bowl-top);
-  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
   overflow-y: auto;
   animation: menu-panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -526,6 +532,29 @@ body {
   to {
     transform: none;
   }
+}
+
+.menu-panel__inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  /* Settling back to 0 after a drag that wasn't thrown: same easing and
+     duration as the deck's own `.q-wrap` snap-back. */
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Live-follows the finger — no lag, no fighting a mid-flight transition. */
+.menu-panel__inner--dragging {
+  transition: none;
+}
+
+/* Thrown: continues off screen instead of snapping back, at the deck's own
+   exit speed and curve (EXIT_MS / the outgoing card's own easing). */
+.menu-panel__inner--leaving {
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
 }
 
 .menu-close {
@@ -903,6 +932,7 @@ body {
   .preset__mark svg,
   .cat-pill,
   .suggest-pill,
+  .menu-panel__inner,
   .menu-suggest-submit {
     transition: none;
   }

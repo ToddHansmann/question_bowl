@@ -3,7 +3,6 @@ import {
   CATEGORIES,
   OPEN_PACKS,
   PACKS,
-  baseQuestions,
   categoryByIndex,
   basePool,
   packFor,
@@ -117,11 +116,20 @@ export default function App() {
   const [started, setStarted] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
+  // Swipe-to-dismiss on the menu — its own offset/dragging state, tracked the
+  // same shape as the deck's own drag above, so the gesture can be thrown
+  // with the exact same distance/flick thresholds and timing.
+  const [menuOffset, setMenuOffset] = useState(0)
+  const [menuDragging, setMenuDragging] = useState(false)
+  const [menuLeaving, setMenuLeaving] = useState(false)
+
   const drag = useRef<Drag | null>(null)
-  const menuDrag = useRef<{ id: number; x: number; y: number; decided: boolean; closing: boolean } | null>(
+  const menuDrag = useRef<{ id: number; x: number; y: number; t: number; decided: boolean; horizontal: boolean } | null>(
     null,
   )
+  const menuPanelRef = useRef<HTMLDivElement | null>(null)
   const exitTimer = useRef<number | undefined>(undefined)
+  const menuExitTimer = useRef<number | undefined>(undefined)
   const startTimer = useRef<number | undefined>(undefined)
 
   // Base and every expansion pack toggle independently now. Indices are
@@ -210,7 +218,11 @@ export default function App() {
     void submitRating(currentId, current, currentCategory, currentSource, value)
   }
 
-  /** Closes the menu and resets it back to the categories view for next time. */
+  /**
+   * Closes the menu and resets it back to the categories view for next time
+   * — including the swipe-to-dismiss position, so a menu closed mid-drag (the
+   * X tapped before a snap-back finished, say) never reopens already offset.
+   */
   function closeMenu() {
     setMenuOpen(false)
     setMenuView('categories')
@@ -218,6 +230,9 @@ export default function App() {
     setSuggestionText('')
     setSuggestionCategory('')
     setSuggestionStatus('idle')
+    setMenuOffset(0)
+    setMenuDragging(false)
+    setMenuLeaving(false)
   }
 
   async function submitTheSuggestion() {
@@ -341,6 +356,7 @@ export default function App() {
     () => () => {
       window.clearTimeout(exitTimer.current)
       window.clearTimeout(startTimer.current)
+      window.clearTimeout(menuExitTimer.current)
     },
     [],
   )
@@ -409,30 +425,73 @@ export default function App() {
 
   /**
    * Swipe right, anywhere on the open menu, dismisses it — the same
-   * direction that dismisses the deck's own cards. Independent of `drag`:
-   * the menu sits over the deck and must never fight it for a gesture, and
-   * this one only ever fires `closeMenu()`, never a pointer-following drag.
+   * direction, the same thresholds (DISTANCE/FLICK_DISTANCE/FLICK_VELOCITY),
+   * and the same live-follow-then-throw feel as swiping to the next
+   * question. Independent of `drag`: the menu sits over the deck and must
+   * never fight it for a gesture.
    */
   function onMenuPointerDown(e: React.PointerEvent<HTMLElement>) {
-    menuDrag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, decided: false, closing: false }
+    menuDrag.current = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      t: performance.now(),
+      decided: false,
+      horizontal: false,
+    }
   }
 
   function onMenuPointerMove(e: React.PointerEvent<HTMLElement>) {
     const d = menuDrag.current
-    if (!d || d.id !== e.pointerId || d.decided) return
+    if (!d || d.id !== e.pointerId) return
+
     const dx = e.clientX - d.x
     const dy = e.clientY - d.y
-    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
-    d.decided = true
-    // Rightward and horizontal only — a vertical drag is scrolling the list.
-    d.closing = dx > 0 && Math.abs(dx) > Math.abs(dy)
+
+    if (!d.decided) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+      d.decided = true
+      d.horizontal = Math.abs(dx) > Math.abs(dy)
+      if (d.horizontal) setMenuDragging(true)
+    }
+    if (!d.horizontal) return
+
+    // Only rightward closes anything — a leftward drag pulls against a
+    // rubber band instead, same damping the deck uses for a direction with
+    // nothing behind it.
+    setMenuOffset(dx > 0 ? dx : dx * 0.25)
   }
 
   function onMenuPointerUp(e: React.PointerEvent<HTMLElement>) {
     const d = menuDrag.current
     menuDrag.current = null
     if (!d || d.id !== e.pointerId) return
-    if (d.closing && e.clientX - d.x > DISTANCE) closeMenu()
+    setMenuDragging(false)
+    if (!d.horizontal) return
+
+    const dx = e.clientX - d.x
+    const speed = Math.abs(dx) / Math.max(1, performance.now() - d.t)
+    const thrown = dx > 0 && (dx > DISTANCE || (dx > FLICK_DISTANCE && speed > FLICK_VELOCITY))
+
+    if (thrown) {
+      // Keep going the same direction, clear off the right edge — the
+      // panel's own width is exactly "off screen" since it's anchored flush
+      // against that edge; a little past it reads as a definite throw
+      // rather than a stop right at the boundary.
+      const width = menuPanelRef.current?.offsetWidth ?? 320
+      setMenuLeaving(true)
+      setMenuOffset(width + 24)
+      window.clearTimeout(menuExitTimer.current)
+      menuExitTimer.current = window.setTimeout(closeMenu, EXIT_MS)
+    } else {
+      setMenuOffset(0)
+    }
+  }
+
+  function onMenuPointerCancel() {
+    menuDrag.current = null
+    setMenuDragging(false)
+    setMenuOffset(0)
   }
 
   /**
@@ -630,10 +689,24 @@ export default function App() {
             onPointerDown={onMenuPointerDown}
             onPointerMove={onMenuPointerMove}
             onPointerUp={onMenuPointerUp}
-            onPointerCancel={() => {
-              menuDrag.current = null
-            }}
+            onPointerCancel={onMenuPointerCancel}
           >
+           {/*
+            * The entrance animation lives on `.menu-panel` above; the drag
+            * transform lives here, on a separate element, for the same
+            * reason `.slot`'s entrance animation and `.q-wrap`'s drag
+            * transform are split in the deck itself — an `animation` with a
+            * forwards fill keeps outranking a later inline `style` change on
+            * the *same* element, so the two transforms need two elements or
+            * the drag would never visibly move anything.
+            */}
+           <div
+             ref={menuPanelRef}
+             className={`menu-panel__inner ${menuDragging ? 'menu-panel__inner--dragging' : ''} ${
+               menuLeaving ? 'menu-panel__inner--leaving' : ''
+             }`}
+             style={{ transform: `translate3d(${menuOffset}px, 0, 0)` }}
+           >
             <button type="button" className="menu-close" aria-label="Close menu" onClick={closeMenu}>
               ✕
             </button>
@@ -658,12 +731,7 @@ export default function App() {
                 </button>
 
                 <div className="preset-list">
-                  {presetButton(
-                    'Base Questions',
-                    `${baseQuestions.length} originals`,
-                    baseEnabled,
-                    toggleBase,
-                  )}
+                  {presetButton('Base Questions', null, baseEnabled, toggleBase)}
                   {presetButton('All Expansion Packs', null, allPacksEnabled, toggleAllCategories)}
                 </div>
 
@@ -775,6 +843,7 @@ export default function App() {
                 )}
               </>
             )}
+           </div>
           </nav>
         </div>
       )}
