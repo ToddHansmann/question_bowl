@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CATEGORIES,
-  GATED_PACKS,
   OPEN_PACKS,
+  PACKS,
+  baseQuestions,
   categoryByIndex,
   basePool,
   packFor,
@@ -31,18 +32,18 @@ const EXIT_MS = 260
 const LANDING_MS = 240 // landing fade before the deck mounts
 
 /**
- * The menu shows packs in three groups, and they behave differently enough
- * that the split is worth naming once here rather than filtering inline.
+ * The menu has two grids — Expansion Packs, then Challenges — each just
+ * `PACKS` filtered by group, in the order `PACKS` already declares.
  *
- * `ALL_PACKS_SWITCH` covers the settled packs only. The experiments are
- * deliberately left out of it: the whole point of shipping a small pack is to
- * find out whether people choose it, and a switch that turns everything on
- * would destroy that signal on the first tap. Gated packs are excluded for a
- * harder reason — a bulk switch must never be able to put explicit questions
- * into the shuffle without anyone agreeing to them.
+ * `BULK_TOGGLE_PACKS` is what the "All Expansion Packs" preset actually
+ * flips, and it is deliberately narrower than `EXPANSION_PACKS`: a bulk
+ * switch must never be able to put a consent-gated pack (Sex) into the
+ * shuffle without anyone agreeing to it, so gated packs are excluded and can
+ * only ever be turned on one at a time, through their own disclaimer.
  */
-const SETTLED_PACKS = OPEN_PACKS.filter((p) => p.tier === 'expansion')
-const EXPERIMENTAL_PACKS = OPEN_PACKS.filter((p) => p.tier === 'experimental')
+const EXPANSION_PACKS = PACKS.filter((p) => p.group === 'expansion')
+const CHALLENGE_PACKS = PACKS.filter((p) => p.group === 'challenge')
+const BULK_TOGGLE_PACKS = OPEN_PACKS.filter((p) => p.group === 'expansion')
 
 /** Shown instead of a question when every category has been switched off. */
 const EMPTY_POOL_SAYINGS = [
@@ -89,11 +90,10 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState<'categories' | 'suggest' | 'consent'>('categories')
 
-  // Dark Room stays out of the list until someone deliberately asks for it,
-  // and then still can't be switched on without everyone agreeing. Both bits
-  // of state are per-page-load on purpose: consent is given by the people at
-  // this table, tonight, and is not something a previous visit can grant.
-  const [gatedRevealed, setGatedRevealed] = useState(false)
+  // A gated pack (Sex, Dark Room) is listed openly, same as any other, and
+  // still can't be switched on without everyone agreeing first. This state is
+  // per-page-load on purpose: consent is given by the people at this table,
+  // tonight, and is not something a previous visit can grant.
   const [consentPack, setConsentPack] = useState<Pack | null>(null)
   const [consented, setConsented] = useState<ReadonlySet<Category>>(() => new Set())
 
@@ -118,6 +118,9 @@ export default function App() {
   const [leaving, setLeaving] = useState(false)
 
   const drag = useRef<Drag | null>(null)
+  const menuDrag = useRef<{ id: number; x: number; y: number; decided: boolean; closing: boolean } | null>(
+    null,
+  )
   const exitTimer = useRef<number | undefined>(undefined)
   const startTimer = useRef<number | undefined>(undefined)
 
@@ -133,7 +136,7 @@ export default function App() {
     return p
   }, [baseEnabled, enabledCategories])
 
-  const allPacksEnabled = SETTLED_PACKS.every((p) => enabledCategories.has(p.category))
+  const allPacksEnabled = BULK_TOGGLE_PACKS.every((p) => enabledCategories.has(p.category))
   const poolEmpty = pool.length === 0
 
   // Re-rolled each time the pool newly becomes empty, and stable for as long
@@ -268,11 +271,11 @@ export default function App() {
     setMenuView('categories')
   }
 
-  /** One switch for the settled packs. Experiments and gated packs opt in alone. */
+  /** The "All Expansion Packs" preset. Gated packs always opt in alone. */
   function toggleAllCategories() {
     setEnabledCategories((prev) => {
       const next = new Set(prev)
-      for (const pack of SETTLED_PACKS) {
+      for (const pack of BULK_TOGGLE_PACKS) {
         if (allPacksEnabled) next.delete(pack.category)
         else next.add(pack.category)
       }
@@ -404,22 +407,91 @@ export default function App() {
     setOffset(0)
   }
 
-  /** One switch row. Identical for every pack — the gate lives in toggleCategory. */
-  function packRow(category: Category) {
+  /**
+   * Swipe right, anywhere on the open menu, dismisses it — the same
+   * direction that dismisses the deck's own cards. Independent of `drag`:
+   * the menu sits over the deck and must never fight it for a gesture, and
+   * this one only ever fires `closeMenu()`, never a pointer-following drag.
+   */
+  function onMenuPointerDown(e: React.PointerEvent<HTMLElement>) {
+    menuDrag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, decided: false, closing: false }
+  }
+
+  function onMenuPointerMove(e: React.PointerEvent<HTMLElement>) {
+    const d = menuDrag.current
+    if (!d || d.id !== e.pointerId || d.decided) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+    d.decided = true
+    // Rightward and horizontal only — a vertical drag is scrolling the list.
+    d.closing = dx > 0 && Math.abs(dx) > Math.abs(dy)
+  }
+
+  function onMenuPointerUp(e: React.PointerEvent<HTMLElement>) {
+    const d = menuDrag.current
+    menuDrag.current = null
+    if (!d || d.id !== e.pointerId) return
+    if (d.closing && e.clientX - d.x > DISTANCE) closeMenu()
+  }
+
+  /**
+   * A full-width preset bar — Base Questions, All Expansion Packs. Visually
+   * distinct from a category pill on purpose: a preset is a bulk action, not
+   * one category among many, and shouldn't read as just another item in the
+   * grid below it.
+   */
+  function presetButton(label: string, meta: string | null, checked: boolean, onClick: () => void) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        className="preset"
+        data-on={checked}
+        onClick={onClick}
+        key={label}
+      >
+        <span className="preset__label">
+          <span className="preset__title">{label}</span>
+          {meta && <span className="preset__meta">{meta}</span>}
+        </span>
+        <span className="preset__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="12" height="12">
+            <path
+              d="M4 12l6 6L20 6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
+    )
+  }
+
+  /**
+   * One category pill — the whole button is the toggle, no separate switch.
+   * Identical for Expansion Packs and Challenges; the gate, if any, lives in
+   * toggleCategory, same as it always has.
+   */
+  function categoryPill(category: Category) {
     const checked = enabledCategories.has(category)
     return (
-      <div className="menu-row" key={category}>
-        <span className="menu-row__label">{category}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={checked}
-          aria-label={`${category} questions`}
-          className="switch"
-          data-checked={checked}
-          onClick={() => toggleCategory(category)}
-        />
-      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={`${category} questions`}
+        className="cat-pill"
+        data-on={checked}
+        onClick={() => toggleCategory(category)}
+        key={category}
+      >
+        {category}
+      </button>
     )
   }
 
@@ -508,7 +580,7 @@ export default function App() {
         </svg>
       </button>
 
-      {!poolEmpty && (
+      {!poolEmpty && !menuOpen && (
         <div className="rate" onPointerDown={(e) => e.stopPropagation()}>
           <button
             type="button"
@@ -555,6 +627,12 @@ export default function App() {
             className="menu-panel"
             aria-label="Question categories"
             onClick={(e) => e.stopPropagation()}
+            onPointerDown={onMenuPointerDown}
+            onPointerMove={onMenuPointerMove}
+            onPointerUp={onMenuPointerUp}
+            onPointerCancel={() => {
+              menuDrag.current = null
+            }}
           >
             <button type="button" className="menu-close" aria-label="Close menu" onClick={closeMenu}>
               ✕
@@ -562,66 +640,46 @@ export default function App() {
 
             {menuView === 'categories' ? (
               <>
-                <h2 className="menu-title">Categories</h2>
-
-                <div className="menu-list">
-                  <div className="menu-row">
-                    <span className="menu-row__label">Base Questions</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={baseEnabled}
-                      aria-label="Base Questions"
-                      className="switch"
-                      data-checked={baseEnabled}
-                      onClick={toggleBase}
-                    />
-                  </div>
-
-                  <h3 className="menu-subtitle">Expansion Packs</h3>
-
-                  <div className="menu-row">
-                    <span className="menu-row__label">All Expansion Packs</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={allPacksEnabled}
-                      aria-label="All Expansion Packs"
-                      className="switch"
-                      data-checked={allPacksEnabled}
-                      onClick={toggleAllCategories}
-                    />
-                  </div>
-
-                  {SETTLED_PACKS.map(({ category }) => packRow(category))}
-
-                  <h3 className="menu-subtitle">Experimental</h3>
-                  <p className="menu-blurb">
-                    Small packs, still finding out if they land.
-                  </p>
-
-                  {EXPERIMENTAL_PACKS.map(({ category }) => packRow(category))}
-
-                  {gatedRevealed ? (
-                    GATED_PACKS.map(({ category }) => packRow(category))
-                  ) : (
-                    <button
-                      type="button"
-                      className="menu-reveal"
-                      onClick={() => setGatedRevealed(true)}
-                    >
-                      Show the explicit pack
-                    </button>
-                  )}
-                </div>
-
                 <button
                   type="button"
-                  className="menu-suggest-link"
+                  className="suggest-pill"
                   onClick={() => setMenuView('suggest')}
                 >
-                  Suggest a Question
+                  <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+                    <path
+                      d="M12 5v14M5 12h14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Suggest a question
                 </button>
+
+                <div className="preset-list">
+                  {presetButton(
+                    'Base Questions',
+                    `${baseQuestions.length} originals`,
+                    baseEnabled,
+                    toggleBase,
+                  )}
+                  {presetButton('All Expansion Packs', null, allPacksEnabled, toggleAllCategories)}
+                </div>
+
+                <div className="menu-group">
+                  <h3 className="menu-subtitle">Expansion Packs</h3>
+                  <div className="pill-grid">
+                    {EXPANSION_PACKS.map(({ category }) => categoryPill(category))}
+                  </div>
+                </div>
+
+                <div className="menu-group">
+                  <h3 className="menu-subtitle">Challenges</h3>
+                  <div className="pill-grid">
+                    {CHALLENGE_PACKS.map(({ category }) => categoryPill(category))}
+                  </div>
+                </div>
               </>
             ) : menuView === 'consent' && consentPack ? (
               <>

@@ -24,12 +24,11 @@ export type Category =
   | 'Personal'
   | 'Messy'
   | 'Dating'
-  | 'Risqué'
-  | 'Challenge'
+  | 'Sex'
+  | 'Dare'
   | 'Adulting'
   | 'Travel'
   | 'Nostalgia'
-  // Experimental packs — see PACKS at the foot of this file.
   | 'AI'
   | 'Queer Culture'
   | 'Dark Room'
@@ -37,26 +36,29 @@ export type Category =
 /**
  * What a pack is for, which is not the same as what's in it.
  *
- * - `expansion` — the settled packs. Free, and not being measured for
- *   anything; they're just the deck.
- * - `experimental` — deliberately small, roughly 20–25 questions, shipped to
- *   find out whether a subject is worth more. The next tier here is the one
- *   that isn't written yet: a pack that earns its keep gets built out to ~100
- *   questions and moves behind a price. That gate reads `tier`, so adding it
- *   later is a new tier value and a check, not a reshape of this file. None
- *   of it is implemented, and nothing below assumes it.
+ * - `expansion` — questions. Shown in the menu's "Expansion Packs" grid.
+ * - `challenge` — dares, not questions. Shown in their own "Challenges"
+ *   section, placed after every expansion pack so the two kinds never blur
+ *   together in the list the way they used to when it was one flat menu.
+ *
+ * AI and Queer Culture shipped small on purpose, to find out whether the
+ * subject was worth more — that trial is over and both graduated into
+ * `expansion` alongside everything else. Nothing left in this file measures
+ * pack size against a band anymore.
  */
-export type Tier = 'expansion' | 'experimental'
+export type Group = 'expansion' | 'challenge'
 
 export type Pack = {
   category: Category
-  tier: Tier
+  group: Group
   /**
-   * Present means the pack can't simply be switched on: it stays out of the
-   * main list until deliberately revealed, and everyone at the table has to
-   * agree before it joins the shuffle. The string is what they're agreeing
-   * to. Consent is per-session and never remembered — same as every other
-   * category choice, and for a better reason.
+   * Present means the pack can't simply be switched on: everyone at the
+   * table has to agree before it joins the shuffle, every session, freshly.
+   * The string is what they're agreeing to. Consent is per-session and never
+   * remembered — same as every other category choice, and for a better
+   * reason. A gated pack is still listed openly in its group's grid — the
+   * disclaimer shown at the moment someone tries to turn it on is the gate,
+   * not whether the pack is visible.
    */
   consent?: string
 }
@@ -369,64 +371,65 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-132', category: 'Dating', text: "Have you dated someone much older or much younger, and what did it teach you?" },
   { id: 'exp-133', category: 'Dating', text: "At what point does an age gap stop being anybody else's business?" },
 
-  /* -- Risqué ------------------------------------------------------------ */
-  { id: 'exp-134', category: 'Risqué', text: "What’s the most memorable hookup you’ve ever had, and what made it stick?" },
-  { id: 'exp-135', category: 'Risqué', text: "What does your Grindr profile claim about you that isn’t strictly true?" },
-  { id: 'exp-136', category: 'Risqué', text: "What’s a kink you were surprised to discover you were into?" },
-  { id: 'exp-137', category: 'Risqué', text: "What’s your hard limit — the thing you’ll never be talked into?" },
-  { id: 'exp-138', category: 'Risqué', text: "What’s the hottest thing someone has ever said to you in bed?" },
-  { id: 'exp-139', category: 'Risqué', text: "What’s the most public place you’ve ever had sex?" },
-  { id: 'exp-140', category: 'Risqué', text: "Top, bottom, vers — and has that changed over the years?" },
-  { id: 'exp-141', category: 'Risqué', text: "What’s the strangest place you’ve ever met someone for sex?" },
-  { id: 'exp-142', category: 'Risqué', text: "What’s a sexual boundary you set that you’re proud of?" },
-  { id: 'exp-143', category: 'Risqué', text: "What’s the biggest gap you’ve encountered between the profile and the person?" },
-  { id: 'exp-144', category: 'Risqué', text: "What’s a fantasy you’ve never said out loud to anyone at this table?" },
-  { id: 'exp-145', category: 'Risqué', text: "What’s the best sex you’ve ever had, and what made it the best?" },
-  { id: 'exp-146', category: 'Risqué', text: "What were you into five years ago that does nothing for you now?" },
-  { id: 'exp-147', category: 'Risqué', text: "Tell the story of your first time with a man." },
-  { id: 'exp-148', category: 'Risqué', text: "How do you turn someone down when you’re just not interested?" },
-  { id: 'exp-149', category: 'Risqué', text: "What’s a sexual insecurity you’ve made peace with?" },
-  { id: 'exp-150', category: 'Risqué', text: "What’s the worst hookup you’ve ever had — the one that became a story?" },
-  { id: 'exp-151', category: 'Risqué', text: "What’s a physical type you’re into that your friends have never understood?" },
-  { id: 'exp-152', category: 'Risqué', text: "Have you ever had sex somewhere you could have been caught? What happened?" },
-  { id: 'exp-153', category: 'Risqué', text: "Do you stay the night after a hookup, or are you out the door — and has that ever caused a problem?" },
-  { id: 'exp-154', category: 'Risqué', text: "Have you ever had a completely faceless, anonymous encounter, and would you do it again?" },
-  { id: 'exp-155', category: 'Risqué', text: "Glory holes: curiosity, hard pass, or been there?" },
-  { id: 'exp-156', category: 'Risqué', text: "Have you ever been the one to pump and dump — or the one left wondering why someone vanished?" },
-  { id: 'exp-157', category: 'Risqué', text: "Where's your personal line between sex and sex with substances involved?" },
-  { id: 'exp-158', category: 'Risqué', text: "What's a hookup situation where you genuinely felt unsafe, not just regretful?" },
-  { id: 'exp-159', category: 'Risqué', text: "What's the boldest lie you've told to get someone to come over?" },
-  { id: 'exp-160', category: 'Risqué', text: "How long was your longest dry spell, and what ended it?" },
-  { id: 'exp-161', category: 'Risqué', text: "Have you ever been part of a group scene — and would you seek that out again, or file it under \"once was enough\"?" },
-  { id: 'exp-162', category: 'Risqué', text: "How old were you the first time you used a hookup app, and does that number surprise people?" },
-  { id: 'exp-163', category: 'Risqué', text: "Have you ever hooked up with a coworker?" },
-  { id: 'exp-164', category: 'Risqué', text: "Have you ever jerked off at work?" },
-  { id: 'exp-165', category: 'Risqué', text: "Which celebrity was your gay sexual awakening?" },
-  { id: 'exp-166', category: 'Risqué', text: "What is your underwear vibe?" },
-  { id: 'exp-167', category: 'Risqué', text: "During sex, are you noisy or quiet?" },
-  { id: 'exp-168', category: 'Risqué', text: "Which uniform gets you instantly horny?" },
-  { id: 'exp-302', category: 'Risqué', text: "Have you ever used Sniffies? How did that go?" },
-  { id: 'exp-305', category: 'Risqué', text: "Describe your type in the bluntest possible terms. No hedging, no jokes." },
-  { id: 'exp-306', category: 'Risqué', text: "Say your number out loud, then say whether that was the real one." },
-  { id: 'exp-307', category: 'Risqué', text: "What's a kink you've never said out loud to anyone in this room?" },
-  { id: 'exp-308', category: 'Risqué', text: "Who here would you have gone home with, in another life?" },
-  { id: 'exp-309', category: 'Risqué', text: "Describe the best sex you've had this year in exactly three words." },
+  /* -- Sex ------------------------------------------------------------ */
+  { id: 'exp-134', category: 'Sex', text: "What’s the most memorable hookup you’ve ever had, and what made it stick?" },
+  { id: 'exp-135', category: 'Sex', text: "What does your Grindr profile claim about you that isn’t strictly true?" },
+  { id: 'exp-136', category: 'Sex', text: "What’s a kink you were surprised to discover you were into?" },
+  { id: 'exp-137', category: 'Sex', text: "What’s your hard limit — the thing you’ll never be talked into?" },
+  { id: 'exp-138', category: 'Sex', text: "What’s the hottest thing someone has ever said to you in bed?" },
+  { id: 'exp-139', category: 'Sex', text: "What’s the most public place you’ve ever had sex?" },
+  { id: 'exp-140', category: 'Sex', text: "Top, bottom, vers — and has that changed over the years?" },
+  { id: 'exp-141', category: 'Sex', text: "What’s the strangest place you’ve ever met someone for sex?" },
+  { id: 'exp-142', category: 'Sex', text: "What’s a sexual boundary you set that you’re proud of?" },
+  { id: 'exp-143', category: 'Sex', text: "What’s the biggest gap you’ve encountered between the profile and the person?" },
+  { id: 'exp-144', category: 'Sex', text: "What’s a fantasy you’ve never said out loud to anyone at this table?" },
+  { id: 'exp-145', category: 'Sex', text: "What’s the best sex you’ve ever had, and what made it the best?" },
+  { id: 'exp-146', category: 'Sex', text: "What were you into five years ago that does nothing for you now?" },
+  { id: 'exp-147', category: 'Sex', text: "Tell the story of your first time with a man." },
+  { id: 'exp-148', category: 'Sex', text: "How do you turn someone down when you’re just not interested?" },
+  { id: 'exp-149', category: 'Sex', text: "What’s a sexual insecurity you’ve made peace with?" },
+  { id: 'exp-150', category: 'Sex', text: "What’s the worst hookup you’ve ever had — the one that became a story?" },
+  { id: 'exp-151', category: 'Sex', text: "What’s a physical type you’re into that your friends have never understood?" },
+  { id: 'exp-152', category: 'Sex', text: "Have you ever had sex somewhere you could have been caught? What happened?" },
+  { id: 'exp-153', category: 'Sex', text: "Do you stay the night after a hookup, or are you out the door — and has that ever caused a problem?" },
+  { id: 'exp-154', category: 'Sex', text: "Have you ever had a completely faceless, anonymous encounter, and would you do it again?" },
+  { id: 'exp-155', category: 'Sex', text: "Glory holes: curiosity, hard pass, or been there?" },
+  { id: 'exp-156', category: 'Sex', text: "Have you ever been the one to pump and dump — or the one left wondering why someone vanished?" },
+  { id: 'exp-157', category: 'Sex', text: "Where's your personal line between sex and sex with substances involved?" },
+  { id: 'exp-158', category: 'Sex', text: "What's a hookup situation where you genuinely felt unsafe, not just regretful?" },
+  { id: 'exp-159', category: 'Sex', text: "What's the boldest lie you've told to get someone to come over?" },
+  { id: 'exp-160', category: 'Sex', text: "How long was your longest dry spell, and what ended it?" },
+  { id: 'exp-161', category: 'Sex', text: "Have you ever been part of a group scene — and would you seek that out again, or file it under \"once was enough\"?" },
+  { id: 'exp-162', category: 'Sex', text: "How old were you the first time you used a hookup app, and does that number surprise people?" },
+  { id: 'exp-163', category: 'Sex', text: "Have you ever hooked up with a coworker?" },
+  { id: 'exp-164', category: 'Sex', text: "Have you ever jerked off at work?" },
+  { id: 'exp-165', category: 'Sex', text: "Which celebrity was your gay sexual awakening?" },
+  { id: 'exp-166', category: 'Sex', text: "What is your underwear vibe?" },
+  { id: 'exp-167', category: 'Sex', text: "During sex, are you noisy or quiet?" },
+  { id: 'exp-168', category: 'Sex', text: "Which uniform gets you instantly horny?" },
+  { id: 'exp-302', category: 'Sex', text: "Have you ever used Sniffies? How did that go?" },
+  { id: 'exp-305', category: 'Sex', text: "Describe your type in the bluntest possible terms. No hedging, no jokes." },
+  { id: 'exp-306', category: 'Sex', text: "Say your number out loud, then say whether that was the real one." },
+  { id: 'exp-307', category: 'Sex', text: "What's a kink you've never said out loud to anyone in this room?" },
+  { id: 'exp-308', category: 'Sex', text: "Who here would you have gone home with, in another life?" },
+  { id: 'exp-309', category: 'Sex', text: "Describe the best sex you've had this year in exactly three words." },
 
-  /* -- Challenge --------------------------------------------------------- */
-  { id: 'exp-170', category: 'Challenge', text: "Let the group choose your phone wallpaper until tomorrow." },
-  { id: 'exp-171', category: 'Challenge', text: "Speak in an accent until your next turn." },
-  { id: 'exp-172', category: 'Challenge', text: "Swap seats with the person who knows you least." },
-  { id: 'exp-173', category: 'Challenge', text: "Attempt 20 push-ups." },
-  { id: 'exp-174', category: 'Challenge', text: "Trade one article of clothing with the person to your left." },
-  { id: 'exp-175', category: 'Challenge', text: "Do your best impression of another player." },
-  { id: 'exp-176', category: 'Challenge', text: "Serenade someone with the chorus of any song." },
-  { id: 'exp-177', category: 'Challenge', text: "Let another player style your hair." },
-  { id: 'exp-178', category: 'Challenge', text: "Do five yoga poses chosen by the group." },
-  { id: 'exp-179', category: 'Challenge', text: "Tell a joke. If nobody laughs, tell another." },
-  { id: 'exp-180', category: 'Challenge', text: "Moonwalk — or attempt to." },
-  { id: 'exp-181', category: 'Challenge', text: "Hold eye contact with the person across from you for 30 seconds without laughing." },
-  { id: 'exp-182', category: 'Challenge', text: "Do your best animal impression until someone guesses it." },
-  { id: 'exp-198', category: 'Challenge', text: "Say your screen time from last week out loud. The exact number." },
+  /* -- Dare --------------------------------------------------------- */
+  { id: 'exp-170', category: 'Dare', text: "Let the group choose your phone wallpaper until tomorrow." },
+  { id: 'exp-171', category: 'Dare', text: "Speak in an accent until your next turn." },
+  { id: 'exp-172', category: 'Dare', text: "Swap seats with the person who knows you least." },
+  { id: 'exp-173', category: 'Dare', text: "Attempt 20 push-ups." },
+  { id: 'exp-174', category: 'Dare', text: "Trade one article of clothing with the person to your left." },
+  { id: 'exp-175', category: 'Dare', text: "Do your best impression of another player." },
+  { id: 'exp-176', category: 'Dare', text: "Serenade someone with the chorus of any song." },
+  { id: 'exp-177', category: 'Dare', text: "Let another player style your hair." },
+  { id: 'exp-178', category: 'Dare', text: "Do five yoga poses chosen by the group." },
+  { id: 'exp-179', category: 'Dare', text: "Tell a joke. If nobody laughs, tell another." },
+  { id: 'exp-180', category: 'Dare', text: "Moonwalk — or attempt to." },
+  { id: 'exp-181', category: 'Dare', text: "Hold eye contact with the person across from you for 30 seconds without laughing." },
+  { id: 'exp-182', category: 'Dare', text: "Do your best animal impression until someone guesses it." },
+  { id: 'exp-198', category: 'Dare', text: "Say your screen time from last week out loud. The exact number." },
+  { id: 'exp-315', category: 'Dare', text: "Duck walk across the room and back." },
 
   /* -- Adulting ------------------------------------------------------------ */
   { id: 'exp-199', category: 'Adulting', text: "What's the most you've ever spent trying to avoid an awkward conversation about money?" },
@@ -464,6 +467,14 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-229', category: 'Travel', text: "What's a destination with a five-star reputation that you'd personally give three stars?" },
   { id: 'exp-230', category: 'Travel', text: "Would you fly somewhere else to have a medical procedure done cheaper?" },
   { id: 'exp-231', category: 'Travel', text: "What is the most questionable thing you would have done to your body abroad to save money?" },
+  { id: 'exp-316', category: 'Travel', text: "Are you the road-trip planner with snacks pre-portioned, or the one who says \"we'll figure it out\" at the gas station?" },
+  { id: 'exp-317', category: 'Travel', text: "Driver or passenger — and be honest about which one you actually are, not which one you'd like to be." },
+  { id: 'exp-318', category: 'Travel', text: "What's the worst thing that's ever happened on a road trip you were part of?" },
+  { id: 'exp-319', category: 'Travel', text: "What's an unwritten road-trip rule — aux cord privileges, shotgun calls, snack tax — that you take way too seriously?" },
+  { id: 'exp-320', category: 'Travel', text: "What's it like the first night back in your childhood bedroom as an adult?" },
+  { id: 'exp-321', category: 'Travel', text: "What's a tradition at a family member's house that only makes sense once you're standing in it?" },
+  { id: 'exp-322', category: 'Travel', text: "How many days can you spend at your parents' house before you start counting down to leaving?" },
+  { id: 'exp-323', category: 'Travel', text: "What's the most \"this is why I don't visit more often\" moment from a trip home?" },
 
   /* -- Nostalgia --------------------------------------------------------- */
   { id: 'exp-232', category: 'Nostalgia', text: "What was your first car, and do you remember it fondly or is it better left forgotten?" },
@@ -491,7 +502,7 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-254', category: 'Nostalgia', text: "What did dating look like when you started, and would you survive dating now?" },
   { id: 'exp-255', category: 'Nostalgia', text: "What did your parents' generation get right that yours has quietly dropped?" },
 
-  /* -- AI (experimental) ------------------------------------------------- */
+  /* -- AI ------------------------------------------------- */
   { id: 'exp-256', category: 'AI', text: "Have you ever had a genuinely emotional exchange with an AI chatbot?" },
   { id: 'exp-257', category: 'AI', text: "Have you ever thanked an AI, and did you mean it?" },
   { id: 'exp-258', category: 'AI', text: "What have you told an AI that you have not told anyone in this room?" },
@@ -516,7 +527,7 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-277', category: 'AI', text: "What is the most human thing you think a machine will never manage?" },
   { id: 'exp-278', category: 'AI', text: "Has AI ever made you feel worse about your own creativity?" },
 
-  /* -- Queer Culture (experimental) -------------------------------------- */
+  /* -- Queer Culture -------------------------------------- */
   { id: 'exp-279', category: 'Queer Culture', text: "What is an unpopular opinion you hold about a queer icon?" },
   { id: 'exp-280', category: 'Queer Culture', text: "What is something extremely gay you did while closeted and thought nobody clocked?" },
   { id: 'exp-281', category: 'Queer Culture', text: "Who clocked you before you clocked yourself?" },
@@ -540,8 +551,11 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-299', category: 'Queer Culture', text: "Have you ever felt not queer enough for a queer space?" },
   { id: 'exp-300', category: 'Queer Culture', text: "What queer tradition would you like to invent?" },
 
-  /* -- Dark Room (experimental, consent-gated) --------------------------- */
+  /* -- Dark Room (consent-gated) ------------------------------------------ */
   { id: 'exp-301', category: 'Dark Room', kind: 'challenge', text: "Share your Sniffies profile picture with the group." },
+  { id: 'exp-312', category: 'Dark Room', kind: 'challenge', text: "No bottoms until your next turn — Winnie-the-Pooh style." },
+  { id: 'exp-313', category: 'Dark Room', kind: 'challenge', text: "Create a penis puppet or genital origami and have the group guess what it is." },
+  { id: 'exp-314', category: 'Dark Room', kind: 'challenge', text: "Do the elephant walk with the person on your left, then the person on your right." },
   { id: 'exp-183', category: 'Dark Room', kind: 'challenge', text: "Read out the last message you sent on a hookup app." },
   { id: 'exp-169', category: 'Dark Room', kind: 'challenge', text: "Have you ever faked an orgasm? Demonstrate." },
   { id: 'exp-304', category: 'Dark Room', kind: 'challenge', text: "Show the group the last photo you sent that you'd never post publicly." },
@@ -604,38 +618,46 @@ export const ALL_BY_ID: ReadonlyMap<string, BaseEntry | Expansion> = new Map(
 )
 
 /**
- * Every pack, in menu order: the settled ones first, then the experiments,
- * then the one nobody sees until they ask for it.
+ * Every pack, in menu order: every `expansion` pack (questions) first, then
+ * every `challenge` pack (dares), so the menu's two grids — Expansion Packs,
+ * then Challenges — can each just filter this list and keep the order.
  */
 export const PACKS: Pack[] = [
-  { category: 'Warm-up', tier: 'expansion' },
-  { category: 'Personal', tier: 'expansion' },
-  { category: 'Nostalgia', tier: 'expansion' },
-  { category: 'Adulting', tier: 'expansion' },
-  { category: 'Travel', tier: 'expansion' },
-  { category: 'Messy', tier: 'expansion' },
-  { category: 'Dating', tier: 'expansion' },
-  { category: 'Risqué', tier: 'expansion' },
-  { category: 'Challenge', tier: 'expansion' },
+  { category: 'Warm-up', group: 'expansion' },
+  { category: 'Personal', group: 'expansion' },
+  { category: 'Nostalgia', group: 'expansion' },
+  { category: 'Adulting', group: 'expansion' },
+  { category: 'Travel', group: 'expansion' },
+  { category: 'Messy', group: 'expansion' },
+  { category: 'Dating', group: 'expansion' },
+  { category: 'Queer Culture', group: 'expansion' },
+  { category: 'AI', group: 'expansion' },
+  {
+    category: 'Sex',
+    group: 'expansion',
+    consent:
+      'Sex is explicit. It asks about hookups, kinks, and what happens in bed, directly. Nothing in it belongs in a room where one person has not agreed to it — so before it goes into the shuffle, everyone playing needs to say yes out loud.',
+  },
 
-  { category: 'AI', tier: 'experimental' },
-  { category: 'Queer Culture', tier: 'experimental' },
-
+  { category: 'Dare', group: 'challenge' },
   {
     category: 'Dark Room',
-    tier: 'experimental',
+    group: 'challenge',
     consent:
       'Dark Room is explicit. It asks about sex directly and some of it is a dare, not a question. Nothing in it belongs in a room where one person has not agreed to it — so before it goes into the shuffle, everyone playing needs to say yes out loud.',
   },
 ]
 
-/** Every expansion category, in menu order. Unchanged shape; derived now. */
+/** Every category, in menu order. Unchanged shape; derived now. */
 export const CATEGORIES: Category[] = PACKS.map((p) => p.category)
 
-/** Packs listed plainly in the menu — everything without a consent gate. */
+/** Packs listed without a consent gate — free to switch on directly. */
 export const OPEN_PACKS: Pack[] = PACKS.filter((p) => !p.consent)
 
-/** Packs that have to be revealed and agreed to before they can be enabled. */
+/**
+ * Packs that need everyone at the table to agree before they can be
+ * switched on. Still listed openly in their group's grid — see `Pack`.
+ */
 export const GATED_PACKS: Pack[] = PACKS.filter((p) => p.consent)
 
 export function packFor(category: Category): Pack {

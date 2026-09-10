@@ -563,36 +563,154 @@ body {
   opacity: 0.66;
 }
 
-.menu-list {
+/* Stands in for the old "Categories" title — opens the suggestion form
+   rather than accepting text itself, so it reads like a search bar that's
+   actually a link. */
+.suggest-pill {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.78);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, color 140ms ease;
 }
 
-.menu-row {
+.suggest-pill svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.suggest-pill:hover {
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--bowl-top);
+}
+
+.suggest-pill:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ presets --- */
+
+/*
+ * Base Questions and All Expansion Packs are bulk actions, not categories —
+ * full-width bars with a subtitle and a checkbox-style mark, deliberately
+ * heavier than a category pill so the two never read as the same kind of
+ * control.
+ */
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 13px;
+}
+
+.preset {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.preset__label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
 }
 
-.menu-list .menu-row:last-child {
-  border-bottom: 0;
+.preset__title {
+  font-size: 0.94rem;
+  font-weight: 700;
 }
 
-.menu-row__label {
-  color: var(--ink);
-  font-size: 1rem;
+.preset__meta {
+  font-size: 0.68rem;
   font-weight: 500;
+  opacity: 0.72;
 }
 
-/* Groups the expansion packs under their own label, set off from Base
-   Questions above by a hairline — no boxes, no shadows, just a divider. */
+.preset__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.6px solid rgba(255, 255, 255, 0.55);
+  border-radius: 7px;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.preset__mark svg {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.preset[data-on='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bowl-top);
+}
+
+.preset[data-on='true'] .preset__meta {
+  opacity: 0.75;
+}
+
+.preset[data-on='true'] .preset__mark {
+  background: var(--bowl-top);
+  border-color: var(--bowl-top);
+  color: var(--ink);
+}
+
+.preset[data-on='true'] .preset__mark svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.preset:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------- menu groups --- */
+
+.menu-group {
+  margin-bottom: 12px;
+}
+
+.menu-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Heading for each grid below a preset — "Expansion Packs", "Challenges". */
 .menu-subtitle {
-  margin: 20px 0 0;
+  margin: 0 0 10px;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.16);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
@@ -604,70 +722,51 @@ body {
   opacity: 0.6;
 }
 
-/* A small toggle switch, built without a library. */
-.switch {
-  position: relative;
-  flex: none;
-  width: 42px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.28);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: background 160ms ease;
+.preset-list + .menu-group .menu-subtitle {
+  padding-top: 0;
+  border-top: 0;
 }
 
-.switch::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--ink);
-  transition: transform 160ms ease, background 160ms ease;
+/* ------------------------------------------------------- category pills --- */
+
+.pill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
 }
 
-.switch[data-checked='true'] {
-  background: var(--ink);
-}
-
-.switch[data-checked='true']::after {
-  background: var(--bowl-top);
-  transform: translate3d(16px, 0, 0);
-}
-
-.switch:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
-  outline-offset: 2px;
-}
-
-/* Opens the suggestion form from the bottom of the categories list. */
-.menu-suggest-link {
-  margin-top: 22px;
-  padding: 12px 2px;
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-  background: none;
+/* The whole cell is the toggle — no separate switch. State reads from fill. */
+.cat-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 1.4px solid rgba(255, 255, 255, 0.4);
+  border-radius: 23px;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.92rem;
+  font-size: 0.735rem;
   font-weight: 600;
-  text-align: left;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.menu-suggest-link:focus-visible {
+.cat-pill[data-on='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bowl-top);
+}
+
+.cat-pill:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.65);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .menu-back {
@@ -799,58 +898,17 @@ body {
   .q-wrap,
   .rate__btn,
   .cta,
-  .switch,
-  .switch::after,
+  .preset,
+  .preset__mark,
+  .preset__mark svg,
+  .cat-pill,
+  .suggest-pill,
   .menu-suggest-submit {
     transition: none;
   }
 }
 
-/* ------------------------------------------- experimental & consent --- */
-
-/* One line under the Experimental heading, explaining why it's separate. */
-.menu-blurb {
-  margin: 6px 0 2px;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.78rem;
-  line-height: 1.4;
-  opacity: 0.55;
-}
-
-/*
- * Dark Room isn't listed until someone asks for it. This is that ask —
- * plain text, no switch, so it can't be flipped on by a stray tap while
- * scrolling the list.
- */
-.menu-reveal {
-  margin-top: 14px;
-  padding: 12px 2px;
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-  background: none;
-  color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.82rem;
-  font-weight: 500;
-  text-align: left;
-  opacity: 0.62;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.menu-reveal:hover,
-.menu-reveal:active {
-  opacity: 0.85;
-}
-
-.menu-reveal:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+/* --------------------------------------------------------- consent --- */
 
 .menu-consent {
   margin: 0 0 20px;

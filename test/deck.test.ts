@@ -178,8 +178,8 @@ test('every question is reachable', () => {
  * the deck. Then it came back and the test narrowed to "explicit material
  * only behind the consent gate". Todd's 2026-09-09 decision splits it along a
  * different seam entirely: Dark Room is *challenges* only, and explicit
- * questions belong in Risqué — which is where that question originally lived
- * and has now returned to.
+ * questions belong in Sex (renamed from Risqué) — which is where that
+ * question originally lived and has now returned to.
  *
  * So the gated-pack half of the old test is gone: it would now fail on a
  * placement that is deliberate. What survives is the half that is still true
@@ -194,17 +194,19 @@ test('no explicit material reaches the canonical base deck', () => {
   }
 })
 
-test('Dark Room is gated, and it is the only gated pack', () => {
+test('Sex and Dark Room are gated, and no other pack is', () => {
   assert.deepEqual(
     GATED_PACKS.map((p) => p.category),
-    ['Dark Room'],
+    ['Sex', 'Dark Room'],
   )
-  const dark = packFor('Dark Room')
-  assert.ok(dark.consent && dark.consent.length > 40, 'gated pack needs real consent copy')
-  assert.ok(
-    !OPEN_PACKS.some((p) => p.category === 'Dark Room'),
-    'a gated pack must not be listed openly',
-  )
+  for (const category of ['Sex', 'Dark Room'] as const) {
+    const pack = packFor(category)
+    assert.ok(pack.consent && pack.consent.length > 40, `${category} needs real consent copy`)
+    assert.ok(
+      !OPEN_PACKS.some((p) => p.category === category),
+      'a gated pack must not be listed openly',
+    )
+  }
 })
 
 test('PACKS describes every category exactly once, in menu order', () => {
@@ -223,22 +225,6 @@ test('PACKS describes every category exactly once, in menu order', () => {
     CATEGORIES.slice().sort(),
     'every pack is either open or gated',
   )
-})
-
-/*
- * Experimental packs are a measurement, not a deck: roughly 20-25 questions,
- * enough to tell whether a subject is worth building out and not so many
- * that building it out was already the decision. Dark Room is exempt while
- * its remaining questions sit with Todd for approval — it would otherwise
- * fail at two, which is exactly the state the exemption is describing.
- */
-test('experimental packs stay in the 20-25 band', () => {
-  const size = (c: string) => expansionQuestions.filter((q) => q.category === c).length
-  for (const p of PACKS) {
-    if (p.tier !== 'experimental' || p.consent) continue
-    const n = size(p.category)
-    assert.ok(n >= 20 && n <= 25, `${p.category} has ${n} questions, want 20-25`)
-  }
 })
 
 /*
@@ -308,17 +294,18 @@ test('reworded and moved questions kept their original ids', () => {
   assert.ok(onABreak && /understood it differently/.test(onABreak.text))
   assert.ok(!/Ross|Rachel/.test(onABreak!.text), 'the Friends reference should be gone')
 
-  // Moved packs, same id. exp-302 sitting in Risqué is a decision, not an
-  // oversight: it is a question about a hookup app, not a dare, and the
-  // Dark Room rule sorts on that distinction rather than on how explicit the
-  // subject is. Todd confirmed it stays. Don't "tidy" it back behind the gate.
+  // Moved packs, same id. exp-302 sitting in Sex (renamed from Risqué) is a
+  // decision, not an oversight: it is a question about a hookup app, not a
+  // dare, and the Dark Room rule sorts on that distinction rather than on how
+  // explicit the subject is. Todd confirmed it stays. Don't "tidy" it back
+  // behind the gate.
   assert.equal((byId('exp-169') as { category?: string }).category, 'Dark Room')
-  assert.equal((byId('exp-302') as { category?: string }).category, 'Risqué')
+  assert.equal((byId('exp-302') as { category?: string }).category, 'Sex')
   assert.equal((byId('exp-184') as { category?: string }).category, 'Dark Room')
   assert.equal((byId('exp-186') as { category?: string }).category, 'Dark Room')
 })
 
-/* ------------------------------------------------------ Dark Room / Risqué --- */
+/* ----------------------------------------------------------- Dark Room / Sex --- */
 
 test('Dark Room contains challenges only', () => {
   // Retired entries included on purpose: a retired dare is still a dare, and
@@ -333,8 +320,9 @@ test('Dark Room contains challenges only', () => {
 /*
  * The other half of the same rule, and the one that actually caught something:
  * checking only from Dark Room's side let six sexual dares sit in the open
- * Challenge pack for three sessions, where anyone flipping that switch met
- * them with no consent screen at all. Assert it from both directions.
+ * Dare pack (Challenge at the time) for three sessions, where anyone
+ * flipping that switch met them with no consent screen at all. Assert it
+ * from both directions.
  */
 test('no challenge sits outside the consent gate', () => {
   const stray = expansionQuestions.filter(
@@ -353,10 +341,10 @@ test('exp-195 is retired, not deleted', () => {
   )
 })
 
-test('the questions moved out of Dark Room are in Risqué', () => {
-  const risque = expansionQuestions.filter((q) => q.category === 'Risqué').map((q) => q.id)
+test('the questions moved out of Dark Room are in Sex', () => {
+  const sex = expansionQuestions.filter((q) => q.category === 'Sex').map((q) => q.id)
   for (const id of ['exp-302', 'exp-305', 'exp-306', 'exp-307', 'exp-308', 'exp-309']) {
-    assert.ok(risque.includes(id), `${id} should be in Risqué`)
+    assert.ok(sex.includes(id), `${id} should be in Sex`)
   }
   // The active roster — what a table can actually be dealt.
   const dark = expansionQuestions
@@ -366,7 +354,7 @@ test('the questions moved out of Dark Room are in Risqué', () => {
     'exp-169', 'exp-183', 'exp-184', 'exp-185', 'exp-186', 'exp-187',
     'exp-188', 'exp-189', 'exp-190', 'exp-191', 'exp-192', 'exp-193',
     'exp-194', 'exp-196', 'exp-197', 'exp-301', 'exp-304', 'exp-310',
-    'exp-311',
+    'exp-311', 'exp-312', 'exp-313', 'exp-314',
   ])
 })
 
