@@ -555,7 +555,7 @@ export const expansionQuestions: Expansion[] = [
   { id: 'exp-301', category: 'Dark Room', kind: 'challenge', text: "Share your Sniffies profile picture with the group." },
   { id: 'exp-312', category: 'Dark Room', kind: 'challenge', text: "No bottoms until your next turn — Winnie-the-Pooh style." },
   { id: 'exp-313', category: 'Dark Room', kind: 'challenge', text: "Create a penis puppet or genital origami and have the group guess what it is." },
-  { id: 'exp-314', category: 'Dark Room', kind: 'challenge', text: "Do the elephant walk with the person on your left, then the person on your right." },
+  { id: 'exp-314', category: 'Dark Room', kind: 'challenge', text: "Do the elephant walk with the person on your left and right." },
   { id: 'exp-183', category: 'Dark Room', kind: 'challenge', text: "Read out the last message you sent on a hookup app." },
   { id: 'exp-169', category: 'Dark Room', kind: 'challenge', text: "Have you ever faked an orgasm? Demonstrate." },
   { id: 'exp-304', category: 'Dark Room', kind: 'challenge', text: "Show the group the last photo you sent that you'd never post publicly." },
