@@ -16,9 +16,31 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { isTestMode, setTestMode } from './analytics'
+import { isDeviceExcluded, isTestMode, setDeviceExcluded, setTestMode } from './analytics'
+import { BASE_DECK, PACKS, baseQuestions, expansionQuestions } from './questions'
 import { getClient, supabaseConfigured } from './supabase'
 import './admin.css'
+
+/* ------------------------------------------------------- deck counts --- */
+
+/*
+ * Purely local — every number here comes from `questions.ts`, already in the
+ * bundle, so this needs no query and no RPC. "How many questions are in each
+ * pack" is a fact about the deck, not about who played, and the deck never
+ * changes at runtime.
+ */
+const QUESTION_PACKS = PACKS.filter((p) => p.group === 'expansion')
+const CHALLENGE_PACKS = PACKS.filter((p) => p.group === 'challenge')
+const RETIRED_BASE_COUNT = BASE_DECK.length - baseQuestions.length
+
+const ACTIVE_COUNT_BY_CATEGORY: ReadonlyMap<string, number> = (() => {
+  const counts = new Map<string, number>()
+  for (const q of expansionQuestions) {
+    if (q.retired) continue
+    counts.set(q.category, (counts.get(q.category) ?? 0) + 1)
+  }
+  return counts
+})()
 
 /* ------------------------------------------------------------- shapes --- */
 
@@ -79,6 +101,13 @@ const EMPTY: Metrics = {
   suggestions: [],
 }
 
+type DailyMetrics = {
+  traffic: Traffic | null
+  engagement: Engagement | null
+}
+
+const EMPTY_DAILY: DailyMetrics = { traffic: null, engagement: null }
+
 /* ------------------------------------------------------------ helpers --- */
 
 const n = (v: unknown): number => Number(v ?? 0)
@@ -113,10 +142,21 @@ export default function Admin() {
   const [includeTest, setIncludeTest] = useState(false)
   const [minVotes, setMinVotes] = useState(1)
   const [testDevice, setTestDevice] = useState(() => isTestMode())
+  const [deviceExcluded, setDeviceExcludedState] = useState(() => isDeviceExcluded())
 
   const [metrics, setMetrics] = useState<Metrics>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Traffic and Engagement can be scoped to "today" as well as all time.
+  // Everything else on the page (ratings by category/question, suggestions)
+  // stays all-time regardless — a single day rarely has enough ratings per
+  // question for "most liked today" to mean anything, and the point of that
+  // data is the long-run signal, not a daily number.
+  const [range, setRange] = useState<'total' | 'daily'>('total')
+  const [daily, setDaily] = useState<DailyMetrics>(EMPTY_DAILY)
+  const [dailyLoading, setDailyLoading] = useState(false)
+  const [dailyError, setDailyError] = useState<string | null>(null)
 
   // Restore an existing session on load, and follow sign-in/out after that.
   useEffect(() => {
@@ -189,6 +229,81 @@ export default function Admin() {
     void load()
   }, [load])
 
+  /**
+   * "Today" scoped from raw rows rather than an RPC. The admin RPCs are
+   * all-time aggregates with no date parameter, and there's no migration
+   * file in this repo to add one to — so rather than guess at a new
+   * server-side function, this reads the same tables directly. RLS already
+   * grants `select` on them to a signed-in admin (see the file header), which
+   * is exactly the access this needs and nothing more.
+   */
+  const loadDaily = useCallback(async () => {
+    if (!client || !user) return
+    setDailyLoading(true)
+    setDailyError(null)
+
+    const since = new Date()
+    since.setHours(0, 0, 0, 0)
+    const sinceIso = since.toISOString()
+
+    let events = client
+      .from('analytics_events')
+      .select('name, visitor_id')
+      .gte('created_at', sinceIso)
+    let ratings = client.from('question_ratings').select('value').gte('created_at', sinceIso)
+    let suggestions = client
+      .from('question_suggestions')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', sinceIso)
+    if (!includeTest) {
+      events = events.eq('is_test', false)
+      ratings = ratings.eq('is_test', false)
+      suggestions = suggestions.eq('is_test', false)
+    }
+
+    const [eventsRes, ratingsRes, suggestionsRes] = await Promise.all([events, ratings, suggestions])
+    const failed = [eventsRes, ratingsRes, suggestionsRes].find((r) => r.error)
+    if (failed?.error) {
+      setDailyError(failed.error.message)
+      setDailyLoading(false)
+      return
+    }
+
+    const events_ = (eventsRes.data as { name: string; visitor_id: string | null }[]) ?? []
+    const opened = events_.filter((r) => r.name === 'app_opened')
+    const started = events_.filter((r) => r.name === 'session_started').length
+    const completed = events_.filter((r) => r.name === 'session_completed').length
+    const uniqueVisitors = new Set(opened.map((r) => r.visitor_id).filter(Boolean)).size
+
+    const ratingRows = (ratingsRes.data as { value: string }[]) ?? []
+    const up = ratingRows.filter((r) => r.value === 'up').length
+    const down = ratingRows.filter((r) => r.value === 'down').length
+    const total = up + down
+
+    setDaily({
+      traffic: {
+        unique_visitors: uniqueVisitors,
+        sessions_opened: opened.length,
+        sessions_started: started,
+        sessions_completed: completed,
+      },
+      engagement: {
+        total_ratings: total,
+        thumbs_up: up,
+        thumbs_down: down,
+        positive_pct: total ? (100 * up) / total : null,
+        total_suggestions: suggestionsRes.count ?? 0,
+      },
+    })
+    setDailyLoading(false)
+  }, [client, user, includeTest])
+
+  // Fetched lazily — only once "Today" is actually selected — rather than on
+  // every load alongside the all-time numbers most visits never look at.
+  useEffect(() => {
+    if (range === 'daily') void loadDaily()
+  }, [range, loadDaily])
+
   async function signIn(e: React.FormEvent) {
     e.preventDefault()
     if (!client || signingIn) return
@@ -209,6 +324,12 @@ export default function Admin() {
     const next = !testDevice
     setTestMode(next)
     setTestDevice(next)
+  }
+
+  function toggleDeviceExcluded() {
+    const next = !deviceExcluded
+    setDeviceExcluded(next)
+    setDeviceExcludedState(next)
   }
 
   /* ------------------------------------------------------------ views --- */
@@ -270,6 +391,9 @@ export default function Admin() {
   // An account that exists but isn't on the allow-list reads every metric as
   // zero, because the RPCs filter it out rather than refusing it. Say so,
   // instead of showing a dashboard of noughts that looks like no traffic.
+  // Judged against the all-time numbers regardless of `range` — a quiet day
+  // is a real, valid state for "Today" to be in and must never look like
+  // "not an admin".
   const notAdmin =
     !loading &&
     !loadError &&
@@ -278,13 +402,20 @@ export default function Admin() {
     n(e?.total_ratings) === 0 &&
     n(e?.total_suggestions) === 0
 
+  // What the Traffic/Engagement tiles actually render, per the switch.
+  const shownTraffic = range === 'daily' ? daily.traffic : t
+  const shownEngagement = range === 'daily' ? daily.engagement : e
+
   const rated = metrics.byQuestion.filter((q) => n(q.total) >= minVotes)
   const mostLiked = [...rated]
     .sort((a, b) => n(b.positive_pct) - n(a.positive_pct) || n(b.total) - n(a.total))
-    .slice(0, 10)
+    .slice(0, 8)
+  const leastLiked = [...rated]
+    .sort((a, b) => n(a.positive_pct) - n(b.positive_pct) || n(b.total) - n(a.total))
+    .slice(0, 8)
   const mostPolarizing = [...rated]
     .sort((a, b) => n(b.polarization) - n(a.polarization) || n(b.total) - n(a.total))
-    .slice(0, 10)
+    .slice(0, 8)
 
   return (
     <Shell
@@ -302,6 +433,13 @@ export default function Admin() {
           <label className="adm-check">
             <input type="checkbox" checked={testDevice} onChange={toggleTestDevice} />
             Test mode on this device
+          </label>
+          <label
+            className="adm-check"
+            title="Stronger than test mode: nothing from this device is sent at all, not even tagged. Not reversible after the fact — a device left excluded stays fully dark, including for a real session."
+          >
+            <input type="checkbox" checked={deviceExcluded} onChange={toggleDeviceExcluded} />
+            Exclude this device from analytics
           </label>
           <button type="button" className="adm-btn adm-btn--quiet" onClick={() => void load()}>
             {loading ? 'Refreshing…' : 'Refresh'}
@@ -323,19 +461,49 @@ export default function Admin() {
       ) : (
         <>
           <section className="adm-section">
-            <h2>Traffic</h2>
+            <div className="adm-section__head">
+              <h2>Traffic</h2>
+              <div className="adm-range-group">
+                <div className="adm-range" role="group" aria-label="Time range">
+                  <button
+                    type="button"
+                    data-active={range === 'total'}
+                    onClick={() => setRange('total')}
+                  >
+                    All time
+                  </button>
+                  <button
+                    type="button"
+                    data-active={range === 'daily'}
+                    onClick={() => setRange('daily')}
+                  >
+                    Today
+                  </button>
+                </div>
+                <span className="adm-range-note">Traffic &amp; Engagement only</span>
+              </div>
+            </div>
+            {range === 'daily' && dailyError && (
+              <p className="adm-error">Couldn’t load today’s numbers: {dailyError}</p>
+            )}
             <div className="adm-tiles">
-              <Tile label="Unique visitors" value={n(t?.unique_visitors)} />
-              <Tile label="Sessions started" value={n(t?.sessions_started)} />
+              <Tile
+                label="Unique visitors"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.unique_visitors)}
+              />
+              <Tile
+                label="Sessions started"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_started)}
+              />
               <Tile
                 label="Sessions completed"
-                value={n(t?.sessions_completed)}
-                note={`5+ questions · ${rate(n(t?.sessions_completed), n(t?.sessions_started))} of started`}
+                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_completed)}
+                note={`5+ questions · ${rate(n(shownTraffic?.sessions_completed), n(shownTraffic?.sessions_started))} of started`}
               />
               <Tile
                 label="Opened the app"
-                value={n(t?.sessions_opened)}
-                note={`${rate(n(t?.sessions_started), n(t?.sessions_opened))} tapped into the deck`}
+                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_opened)}
+                note={`${rate(n(shownTraffic?.sessions_started), n(shownTraffic?.sessions_opened))} tapped into the deck`}
               />
             </div>
           </section>
@@ -343,12 +511,78 @@ export default function Admin() {
           <section className="adm-section">
             <h2>Engagement</h2>
             <div className="adm-tiles">
-              <Tile label="Total ratings" value={n(e?.total_ratings)} />
-              <Tile label="Positive" value={pct(e?.positive_pct ?? null)} />
-              <Tile label="Thumbs up" value={n(e?.thumbs_up)} />
-              <Tile label="Thumbs down" value={n(e?.thumbs_down)} />
-              <Tile label="Suggestions" value={n(e?.total_suggestions)} />
+              <Tile
+                label="Total ratings"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.total_ratings)}
+              />
+              <Tile
+                label="Positive"
+                value={range === 'daily' && dailyLoading ? '…' : pct(shownEngagement?.positive_pct ?? null)}
+              />
+              <Tile
+                label="Thumbs up"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.thumbs_up)}
+              />
+              <Tile
+                label="Thumbs down"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.thumbs_down)}
+              />
+              <Tile
+                label="Suggestions"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.total_suggestions)}
+              />
             </div>
+          </section>
+
+          <section className="adm-section">
+            <h2>Deck</h2>
+            <div className="adm-tiles">
+              <Tile
+                label="Base"
+                value={baseQuestions.length}
+                note={
+                  RETIRED_BASE_COUNT > 0
+                    ? `${RETIRED_BASE_COUNT} retired`
+                    : 'none retired'
+                }
+              />
+            </div>
+
+            <h3>Question packs</h3>
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th className="num">Active questions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {QUESTION_PACKS.map((p) => (
+                  <tr key={p.category}>
+                    <td>{p.category}</td>
+                    <td className="num">{ACTIVE_COUNT_BY_CATEGORY.get(p.category) ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3>Challenges</h3>
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th className="num">Active challenges</th>
+                </tr>
+              </thead>
+              <tbody>
+                {CHALLENGE_PACKS.map((p) => (
+                  <tr key={p.category}>
+                    <td>{p.category}</td>
+                    <td className="num">{ACTIVE_COUNT_BY_CATEGORY.get(p.category) ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           <section className="adm-section">
@@ -400,13 +634,16 @@ export default function Admin() {
             </div>
 
             <h3>Most liked</h3>
-            <QuestionTable rows={mostLiked} metric="positive_pct" minVotes={minVotes} />
+            <ExpandableQuestionTable rows={mostLiked} metric="positive_pct" minVotes={minVotes} />
+
+            <h3>Least liked</h3>
+            <ExpandableQuestionTable rows={leastLiked} metric="positive_pct" minVotes={minVotes} />
 
             <h3>Most polarizing</h3>
             <p className="adm-note adm-note--tight">
               100 is a dead-even split; 0 is unanimous.
             </p>
-            <QuestionTable rows={mostPolarizing} metric="polarization" minVotes={minVotes} />
+            <ExpandableQuestionTable rows={mostPolarizing} metric="polarization" minVotes={minVotes} />
 
             <h3>Every rated question</h3>
             <QuestionTable rows={metrics.byQuestion} metric="positive_pct" minVotes={0} />
@@ -460,6 +697,35 @@ function Tile({ label, value, note }: { label: string; value: number | string; n
       <span className="adm-tile__label">{label}</span>
       {note && <span className="adm-tile__note">{note}</span>}
     </div>
+  )
+}
+
+/**
+ * Wraps `QuestionTable` for the three ranked lists (Most liked, Least liked,
+ * Most polarizing): three rows at rest, an Expand button reveals the rest of
+ * whatever the caller passed in — capped at 8 by the caller, never by this.
+ * "Every rated question" doesn't use this; truncating a list whose entire
+ * point is completeness would defeat it.
+ */
+function ExpandableQuestionTable({
+  rows,
+  metric,
+  minVotes,
+}: {
+  rows: QuestionRow[]
+  metric: 'positive_pct' | 'polarization'
+  minVotes: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <>
+      <QuestionTable rows={expanded ? rows : rows.slice(0, 3)} metric={metric} minVotes={minVotes} />
+      {rows.length > 3 && (
+        <button type="button" className="adm-expand" onClick={() => setExpanded((v) => !v)}>
+          {expanded ? 'Show fewer' : `Show ${rows.length - 3} more`}
+        </button>
+      )}
+    </>
   )
 }
 

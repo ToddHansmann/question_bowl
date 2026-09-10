@@ -124,6 +124,74 @@
   font-weight: 600;
 }
 
+/* ---------------------------------------------------------- time range --- */
+
+.adm-range-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adm-range {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.adm-range button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adm-range button[data-active='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.adm-range button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.adm-range-note {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+/* -------------------------------------------------------- expand/show --- */
+
+.adm-expand {
+  margin: 10px 0 4px;
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adm-expand:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.adm-expand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* --------------------------------------------------------------- tiles --- */
 
 .adm-tiles {
