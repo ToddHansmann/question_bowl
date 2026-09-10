@@ -39,13 +39,55 @@
 }
 
 .adm-head {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 20px;
   padding: 18px clamp(16px, 4vw, 40px);
+  /* Clears .adm-actions, pinned to this header's own top-right corner —
+     wide enough for two icon buttons regardless of how .adm-bar wraps. */
+  padding-right: 108px;
   border-bottom: 1px solid var(--line);
   background: #fff;
+}
+
+/* Refresh and Sign out — always the header's upper-right corner, independent
+   of .adm-bar's own wrapping, since this sits outside that flow entirely. */
+.adm-actions {
+  position: absolute;
+  top: 14px;
+  right: clamp(16px, 4vw, 40px);
+  display: flex;
+  gap: 6px;
+}
+
+.adm-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.adm-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.adm-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.adm-icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .adm-head h1 {
@@ -130,6 +172,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  /* Breathing room before the Unique Visitors tile row right below it. */
+  margin-bottom: 10px;
 }
 
 .adm-range {
@@ -361,15 +405,6 @@
 .adm-btn:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.adm-btn--quiet {
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 500;
 }
 
 .adm-note {

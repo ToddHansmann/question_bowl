@@ -42,6 +42,12 @@ const ACTIVE_COUNT_BY_CATEGORY: ReadonlyMap<string, number> = (() => {
   return counts
 })()
 
+const totalFor = (packs: typeof PACKS): number =>
+  packs.reduce((sum, p) => sum + (ACTIVE_COUNT_BY_CATEGORY.get(p.category) ?? 0), 0)
+
+const TOTAL_QUESTION_PACK_COUNT = totalFor(QUESTION_PACKS)
+const TOTAL_CHALLENGE_COUNT = totalFor(CHALLENGE_PACKS)
+
 /* ------------------------------------------------------------- shapes --- */
 
 type Traffic = {
@@ -141,7 +147,6 @@ export default function Admin() {
 
   const [includeTest, setIncludeTest] = useState(false)
   const [minVotes, setMinVotes] = useState(1)
-  const [testDevice, setTestDevice] = useState(() => isTestMode())
   const [deviceExcluded, setDeviceExcludedState] = useState(() => isDeviceExcluded())
 
   const [metrics, setMetrics] = useState<Metrics>(EMPTY)
@@ -183,15 +188,18 @@ export default function Admin() {
   }, [])
 
   /**
-   * Signing in to the dashboard turns test mode on for this device. The
-   * whole point of the flag is the case where the admin is playing rather
-   * than reading numbers, and that's a decision best made once, here, rather
-   * than remembered before every demo.
+   * Signing in to the dashboard turns test mode on for this device — still
+   * true, just not a toggle in the UI anymore: the whole point of the flag
+   * is the case where the admin is playing rather than reading numbers, and
+   * that's a decision best made once, here, rather than remembered before
+   * every demo. `isTestMode`/`setTestMode` stay as the underlying mechanism
+   * ("Include test data" still reads it, `?qbtest=` still sets it); only the
+   * manual on/off switch for it is gone, in favor of the one control that
+   * actually matters day to day — Exclude this device from analytics.
    */
   useEffect(() => {
     if (user && !isTestMode()) {
       setTestMode(true)
-      setTestDevice(true)
     }
   }, [user])
 
@@ -320,12 +328,6 @@ export default function Admin() {
     setMetrics(EMPTY)
   }
 
-  function toggleTestDevice() {
-    const next = !testDevice
-    setTestMode(next)
-    setTestDevice(next)
-  }
-
   function toggleDeviceExcluded() {
     const next = !deviceExcluded
     setDeviceExcluded(next)
@@ -419,6 +421,62 @@ export default function Admin() {
 
   return (
     <Shell
+      actions={
+        <div className="adm-actions">
+          <button
+            type="button"
+            className="adm-icon-btn"
+            aria-label={loading ? 'Refreshing…' : 'Refresh'}
+            title={loading ? 'Refreshing…' : 'Refresh'}
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M20 11A8 8 0 104 13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M20 5v6h-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="adm-icon-btn"
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={() => void signOut()}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M16 17l5-5-5-5M21 12H9"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      }
       bar={
         <div className="adm-bar">
           <span className="adm-who">{user.email}</span>
@@ -430,23 +488,13 @@ export default function Admin() {
             />
             Include test data
           </label>
-          <label className="adm-check">
-            <input type="checkbox" checked={testDevice} onChange={toggleTestDevice} />
-            Test mode on this device
-          </label>
           <label
             className="adm-check"
-            title="Stronger than test mode: nothing from this device is sent at all, not even tagged. Not reversible after the fact — a device left excluded stays fully dark, including for a real session."
+            title="Nothing from this device is sent at all, not even tagged. Not reversible after the fact — a device left excluded stays fully dark, including for a real session."
           >
             <input type="checkbox" checked={deviceExcluded} onChange={toggleDeviceExcluded} />
             Exclude this device from analytics
           </label>
-          <button type="button" className="adm-btn adm-btn--quiet" onClick={() => void load()}>
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-          <button type="button" className="adm-btn adm-btn--quiet" onClick={() => void signOut()}>
-            Sign out
-          </button>
         </div>
       }
     >
@@ -545,6 +593,16 @@ export default function Admin() {
                     ? `${RETIRED_BASE_COUNT} retired`
                     : 'none retired'
                 }
+              />
+              <Tile
+                label="Question packs"
+                value={TOTAL_QUESTION_PACK_COUNT}
+                note={`across ${QUESTION_PACKS.length} categories`}
+              />
+              <Tile
+                label="Challenges"
+                value={TOTAL_CHALLENGE_COUNT}
+                note={`across ${CHALLENGE_PACKS.length} categories`}
               />
             </div>
 
@@ -676,7 +734,17 @@ export default function Admin() {
 
 /* ----------------------------------------------------------- fragments --- */
 
-function Shell({ children, bar }: { children: React.ReactNode; bar?: React.ReactNode }) {
+function Shell({
+  children,
+  bar,
+  actions,
+}: {
+  children: React.ReactNode
+  bar?: React.ReactNode
+  /** Icon-only buttons (Refresh, Sign out), pinned to the header's own
+   *  upper-right corner regardless of how `bar` wraps below it. */
+  actions?: React.ReactNode
+}) {
   return (
     <div className="adm">
       <header className="adm-head">
@@ -684,6 +752,7 @@ function Shell({ children, bar }: { children: React.ReactNode; bar?: React.React
           Question Bowl <span>analytics</span>
         </h1>
         {bar}
+        {actions}
       </header>
       <main className="adm-main">{children}</main>
     </div>
