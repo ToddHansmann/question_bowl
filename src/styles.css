@@ -498,6 +498,9 @@ body {
  * panel riding on the same layer.
  */
 .menu-backdrop {
+  /* One source for the panel's width: the panel is sized from it and the
+     edge shading below is placed and animated against it. */
+  --menu-w: min(84vw, 320px);
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -512,6 +515,49 @@ body {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.32);
+}
+
+/*
+ * Ambient depth along the panel's leading edge, so it reads as sitting
+ * above the deck rather than being cut out of it. A horizontal falloff
+ * rather than a border: weighted toward the edge and gone by 36px, which
+ * at these alphas never resolves into a line you could point at.
+ *
+ * It hangs off the dim rather than the panel because `.menu-panel`'s
+ * `overflow-y: auto` computes `overflow-x` to `auto` as well, which would
+ * clip a pseudo-element placed outside the panel's own box. Riding the dim
+ * means the dismissal carries it for free — the shared transform on
+ * `.menu-backdrop` moves it with the panel, and the exit fade takes it out
+ * at the same time.
+ */
+.menu-backdrop__dim::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: var(--menu-w);
+  width: 36px;
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 0.22) 0%,
+    rgba(0, 0, 0, 0.12) 32%,
+    rgba(0, 0, 0, 0.045) 64%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  /* The dim is already in place when the panel starts its slide-in, so
+     without this the band would sit there alone for 220ms waiting to be
+     met. Same duration and curve as the panel, offset by the panel's own
+     width, so the two travel in as one. */
+  animation: menu-edge-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menu-edge-in {
+  from {
+    transform: translate3d(var(--menu-w), 0, 0);
+  }
+  to {
+    transform: none;
+  }
 }
 
 /* Live-follows the finger — no lag, no fighting a mid-flight transition. */
@@ -556,7 +602,7 @@ body {
 .menu-panel {
   position: absolute;
   inset: 0 0 0 auto;
-  width: min(84vw, 320px);
+  width: var(--menu-w);
   background: var(--bowl-top);
   overflow-y: auto;
   animation: menu-panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -945,7 +991,8 @@ body {
   .empty__inner,
   .screen--enter,
   .menu-backdrop,
-  .menu-panel {
+  .menu-panel,
+  .menu-backdrop__dim::after {
     animation-duration: 1ms;
   }
 
