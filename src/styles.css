@@ -158,7 +158,7 @@ body {
   font-size: clamp(2.7rem, min(14.5vw, 15vh), 5.4rem);
 }
 
-.landing__the {
+.landing__eyebrow {
   display: block;
   margin-bottom: 0.42em;
   font-size: 0.3em;
@@ -490,12 +490,49 @@ body {
   border-radius: 12px;
 }
 
+/*
+ * Carries the swipe-to-dismiss transform for the whole overlay — dim and
+ * panel both — so the two leave together instead of the panel sliding out
+ * from under a dim that stays put. The dim itself moved to
+ * `.menu-backdrop__dim` below so the exit can fade it without fading the
+ * panel riding on the same layer.
+ */
 .menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: rgba(0, 0, 0, 0.32);
   animation: menu-backdrop-in 180ms ease both;
+  /* Settling back to 0 after a drag that wasn't thrown: same easing and
+     duration as the deck's own `.q-wrap` snap-back. */
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.menu-backdrop__dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* Live-follows the finger — no lag, no fighting a mid-flight transition. */
+.menu-backdrop--dragging {
+  transition: none;
+}
+
+/* Thrown: continues off screen instead of snapping back, at the deck's own
+   exit speed and curve (EXIT_MS / the outgoing card's own easing). */
+.menu-backdrop--leaving {
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+}
+
+/* A full-bleed dim can't clear the edge the way a 320px panel can — 344px
+   of travel leaves most of it still covering the screen at the moment the
+   menu unmounts, which reads as a pop. Fading it across the same 260ms lets
+   it finish leaving exactly when the panel does. */
+.menu-backdrop--leaving .menu-backdrop__dim {
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.4, 0, 0.7, 1);
 }
 
 @keyframes menu-backdrop-in {
@@ -509,12 +546,12 @@ body {
 
 /*
  * The entrance slide-in lives here, as a CSS `animation`. The swipe-to-
- * dismiss drag/throw lives on `.menu-panel__inner` below, as a `transition`
- * driven by an inline `style`, on purpose kept off this element: a forwards-
- * filling `animation` outranks a later inline `transform` change on the same
- * element (same reason `.slot`'s entrance and `.q-wrap`'s drag are two
- * elements in the deck itself), so splitting them is what lets the drag
- * actually move anything once the entrance animation has settled.
+ * dismiss drag/throw is on `.menu-backdrop` above, deliberately kept off
+ * this element: a forwards-filling `animation` outranks a later inline
+ * `transform` change on the same element (same reason `.slot`'s entrance
+ * and `.q-wrap`'s drag are two elements in the deck itself), so the drag
+ * would never move anything if it sat here. On an ancestor it composes with
+ * this animation instead of competing with it — and it takes the dim along.
  */
 .menu-panel {
   position: absolute;
@@ -534,27 +571,15 @@ body {
   }
 }
 
+/* Layout only now — the dismiss transform moved up to `.menu-backdrop`, so
+   the dim and the panel travel on one layer instead of this element sliding
+   out from inside a stationary panel (and being clipped by its own
+   `overflow-x`, which `overflow-y: auto` above computes to `auto`). */
 .menu-panel__inner {
   display: flex;
   flex-direction: column;
   min-height: 100%;
   padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-  /* Settling back to 0 after a drag that wasn't thrown: same easing and
-     duration as the deck's own `.q-wrap` snap-back. */
-  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-/* Live-follows the finger — no lag, no fighting a mid-flight transition. */
-.menu-panel__inner--dragging {
-  transition: none;
-}
-
-/* Thrown: continues off screen instead of snapping back, at the deck's own
-   exit speed and curve (EXIT_MS / the outgoing card's own easing). */
-.menu-panel__inner--leaving {
-  transition-duration: 260ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
 }
 
 .menu-close {
@@ -932,7 +957,8 @@ body {
   .preset__mark svg,
   .cat-pill,
   .suggest-pill,
-  .menu-panel__inner,
+  .menu-backdrop,
+  .menu-backdrop--leaving .menu-backdrop__dim,
   .menu-suggest-submit {
     transition: none;
   }

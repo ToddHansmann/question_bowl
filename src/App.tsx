@@ -127,7 +127,7 @@ export default function App() {
   const menuDrag = useRef<{ id: number; x: number; y: number; t: number; decided: boolean; horizontal: boolean } | null>(
     null,
   )
-  const menuPanelRef = useRef<HTMLDivElement | null>(null)
+  const menuPanelRef = useRef<HTMLElement | null>(null)
   const exitTimer = useRef<number | undefined>(undefined)
   const menuExitTimer = useRef<number | undefined>(undefined)
   const startTimer = useRef<number | undefined>(undefined)
@@ -559,8 +559,8 @@ export default function App() {
       <section className={`landing ${leaving ? 'landing--out' : ''}`}>
         <div className="landing__inner">
           <h1 className="landing__title">
-            <span className="landing__the">Sip the</span>{' '}
-            <span className="landing__name">Tea</span>
+            <span className="landing__eyebrow">Gather Around</span>{' '}
+            <span className="landing__name">Sip the Tea</span>
           </h1>
           <p className="landing__tagline">Answer out loud.</p>
           <button type="button" className="cta" onClick={start}>
@@ -676,13 +676,32 @@ export default function App() {
         </div>
       )}
 
+      {/*
+       * The drag transform lives on `.menu-backdrop` below, the element that
+       * wraps *both* the dim and the panel, so the whole overlay travels as
+       * one layer — the dim used to be painted by that element while the
+       * transform sat on `.menu-panel__inner` two levels down, which left the
+       * dim (and the panel's own surface) standing still while only the
+       * panel's contents slid away.
+       *
+       * It can share an element with the entrance animation there, where it
+       * couldn't on `.menu-panel`: `menu-backdrop-in` only has `opacity` in
+       * its keyframes, so its forwards fill has no `transform` to outrank the
+       * inline style with. `.menu-panel` keeps its own slide-in animation, and
+       * a parent's transform composes with a child's rather than fighting it.
+       */}
       {menuOpen && (
         <div
-          className="menu-backdrop"
+          className={`menu-backdrop ${menuDragging ? 'menu-backdrop--dragging' : ''} ${
+            menuLeaving ? 'menu-backdrop--leaving' : ''
+          }`}
+          style={{ transform: `translate3d(${menuOffset}px, 0, 0)` }}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={closeMenu}
         >
+          <div className="menu-backdrop__dim" />
           <nav
+            ref={menuPanelRef}
             className="menu-panel"
             aria-label="Question categories"
             onClick={(e) => e.stopPropagation()}
@@ -691,22 +710,7 @@ export default function App() {
             onPointerUp={onMenuPointerUp}
             onPointerCancel={onMenuPointerCancel}
           >
-           {/*
-            * The entrance animation lives on `.menu-panel` above; the drag
-            * transform lives here, on a separate element, for the same
-            * reason `.slot`'s entrance animation and `.q-wrap`'s drag
-            * transform are split in the deck itself — an `animation` with a
-            * forwards fill keeps outranking a later inline `style` change on
-            * the *same* element, so the two transforms need two elements or
-            * the drag would never visibly move anything.
-            */}
-           <div
-             ref={menuPanelRef}
-             className={`menu-panel__inner ${menuDragging ? 'menu-panel__inner--dragging' : ''} ${
-               menuLeaving ? 'menu-panel__inner--leaving' : ''
-             }`}
-             style={{ transform: `translate3d(${menuOffset}px, 0, 0)` }}
-           >
+           <div className="menu-panel__inner">
             <button type="button" className="menu-close" aria-label="Close menu" onClick={closeMenu}>
               ✕
             </button>
