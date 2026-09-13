@@ -14,6 +14,16 @@ import {
 } from './questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from './deck'
 import { SESSION_COMPLETE_AT, trackOnce } from './analytics'
+import { flags } from './flags'
+import {
+  ONBOARDING_CLOSER,
+  ONBOARDING_CTA,
+  ONBOARDING_LINES,
+  completeOnboarding,
+  shouldShowOnboarding,
+} from './onboarding'
+import { useCardTelemetry } from './telemetry/useCardTelemetry'
+import type { ExitAction } from './telemetry/schema'
 import {
   loadRatings,
   saveRatings,
@@ -87,7 +97,7 @@ export default function App() {
     () => new Set(),
   )
   const [menuOpen, setMenuOpen] = useState(false)
-  const [menuView, setMenuView] = useState<'categories' | 'suggest' | 'consent'>('categories')
+  const [menuView, setMenuView] = useState<'categories' | 'suggest' | 'consent' | 'about'>('categories')
 
   // A gated pack (Sex, Dark Room) is listed openly, same as any other, and
   // still can't be switched on without everyone agreeing first. This state is
@@ -115,6 +125,12 @@ export default function App() {
   const [exiting, setExiting] = useState<Exiting | null>(null)
   const [started, setStarted] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  // The one-time welcome sits between the landing screen and the first card.
+  const [onboarding, setOnboarding] = useState(false)
+  const [onboardingLeaving, setOnboardingLeaving] = useState(false)
+  // Briefly confirms a best-conversation nomination, then fades.
+  const [nominationNote, setNominationNote] = useState(false)
+  const nominationNoteTimer = useRef<number | undefined>(undefined)
 
   // Swipe-to-dismiss on the menu — its own offset/dragging state, tracked the
   // same shape as the deck's own drag above, so the gesture can be thrown
@@ -175,8 +191,26 @@ export default function App() {
   // who has already had their say about it.
   const currentRating = ratings[currentId]
 
-  /** Advance (1) or retreat (-1), throwing the current question that way. */
-  function go(direction: 1 | -1, from: number) {
+  // Observes the deck and records how each card was dealt and how it left.
+  // Never changes what the deck does. See telemetry/useCardTelemetry.ts.
+  const telemetry = useCardTelemetry({
+    started,
+    deck,
+    poolEmpty,
+    poolSize: pool.length,
+    menuOpen,
+    baseEnabled,
+    enabledCategories,
+    consentedCategories: consented,
+  })
+  const currentNominated = telemetry.nominatedPosition === deck.cursor + 1
+
+  /**
+   * Advance (1) or retreat (-1), throwing the current question that way.
+   * `action` says why the card is leaving; it defaults to what the direction
+   * means (next or back) and only telemetry reads it.
+   */
+  function go(direction: 1 | -1, from: number, action?: ExitAction) {
     // Nothing to draw or browse while the pool is empty — the empty-state
     // screen is up instead of the deck, so there's no card to move anyway.
     if (poolEmpty) return
@@ -184,6 +218,7 @@ export default function App() {
       setOffset(0)
       return
     }
+    telemetry.exit(action ?? (direction === 1 ? 'next' : 'back'))
     // A new question is thrown left, a revisited one right — the opposite of
     // the swipe that asked for it, so the card follows the finger off screen.
     setDir(-direction)
@@ -202,7 +237,38 @@ export default function App() {
     if (leaving || started) return
     trackOnce('session_started')
     setLeaving(true)
-    startTimer.current = window.setTimeout(() => setStarted(true), LANDING_MS)
+    startTimer.current = window.setTimeout(() => {
+      if (shouldShowOnboarding()) {
+        trackOnce('onboarding_shown')
+        setOnboarding(true)
+      } else {
+        setStarted(true)
+      }
+    }, LANDING_MS)
+  }
+
+  /** "Let's Play" on the welcome. Remembered, so it never shows again on this device. */
+  function finishOnboarding() {
+    if (!onboarding || onboardingLeaving) return
+    completeOnboarding()
+    trackOnce('onboarding_completed')
+    setOnboardingLeaving(true)
+    startTimer.current = window.setTimeout(() => {
+      setOnboarding(false)
+      setStarted(true)
+    }, LANDING_MS)
+  }
+
+  /** Marks (or unmarks) the card on screen as tonight's best conversation. One per session. */
+  function toggleNomination() {
+    if (poolEmpty) return
+    const nominating = !currentNominated
+    telemetry.toggleNomination()
+    window.clearTimeout(nominationNoteTimer.current)
+    setNominationNote(nominating)
+    if (nominating) {
+      nominationNoteTimer.current = window.setTimeout(() => setNominationNote(false), 2200)
+    }
   }
 
   /**
@@ -216,6 +282,7 @@ export default function App() {
     setRatings(next)
     saveRatings(next)
     void submitRating(currentId, current, currentCategory, currentSource, value)
+    telemetry.thumb(value)
   }
 
   /**
@@ -301,8 +368,10 @@ export default function App() {
   // These close over this render's state, so keep fresh copies for listeners.
   const goRef = useRef(go)
   const startRef = useRef(start)
+  const finishOnboardingRef = useRef(finishOnboarding)
   goRef.current = go
   startRef.current = start
+  finishOnboardingRef.current = finishOnboarding
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -312,6 +381,13 @@ export default function App() {
         return
       }
       const forwards = e.key === 'ArrowLeft' || e.key === ' ' || e.key === 'Enter'
+      if (onboarding) {
+        if (forwards) {
+          e.preventDefault()
+          finishOnboardingRef.current()
+        }
+        return
+      }
       if (!started) {
         if (forwards) {
           e.preventDefault()
@@ -330,7 +406,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [started, menuOpen])
+  }, [started, menuOpen, onboarding])
 
   // Fires for everyone who loads the page, whether or not they ever tap
   // past the landing screen — it's what unique visitors is counted from, and
@@ -357,6 +433,7 @@ export default function App() {
       window.clearTimeout(exitTimer.current)
       window.clearTimeout(startTimer.current)
       window.clearTimeout(menuExitTimer.current)
+      window.clearTimeout(nominationNoteTimer.current)
     },
     [],
   )
@@ -404,7 +481,13 @@ export default function App() {
     drag.current = null
     setDragging(false)
 
-    if (!d.horizontal) return
+    if (!d.horizontal) {
+      // Swipe up to skip — only when the gesture is switched on. Off, a
+      // vertical swipe does nothing, exactly as it always has.
+      const dy = e.clientY - d.y
+      if (flags.skipGesture && dy < -DISTANCE) go(1, 0, 'skip')
+      return
+    }
 
     const dx = e.clientX - d.x
     const speed = Math.abs(dx) / Math.max(1, performance.now() - d.t)
@@ -554,6 +637,35 @@ export default function App() {
     )
   }
 
+  if (onboarding) {
+    return (
+      <section
+        className={`landing welcome ${onboardingLeaving ? 'landing--out' : ''}`}
+        aria-labelledby="welcome-closer"
+      >
+        <div className="landing__inner welcome__inner">
+          <ul className="welcome__lines">
+            {ONBOARDING_LINES.map((line, i) => (
+              <li key={line} style={{ ['--i' as string]: i }}>
+                {line}
+              </li>
+            ))}
+          </ul>
+          <p
+            id="welcome-closer"
+            className="welcome__closer"
+            style={{ ['--i' as string]: ONBOARDING_LINES.length }}
+          >
+            {ONBOARDING_CLOSER}
+          </p>
+          <button type="button" className="cta welcome__cta" onClick={finishOnboarding} autoFocus>
+            {ONBOARDING_CTA}
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   if (!started) {
     return (
       <section className={`landing ${leaving ? 'landing--out' : ''}`}>
@@ -563,6 +675,7 @@ export default function App() {
             <span className="landing__name">Sip the Tea</span>
           </h1>
           <p className="landing__tagline">Answer out loud.</p>
+          <p className="landing__support">Discover what people are really curious about.</p>
           <button type="button" className="cta" onClick={start}>
             Pour the first question 🫖
           </button>
@@ -638,6 +751,36 @@ export default function App() {
           <line x1="3.5" y1="17" x2="20.5" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       </button>
+
+      {flags.bestConversation && !poolEmpty && !menuOpen && (
+        <div className="nominate" onPointerDown={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="nominate__btn"
+            aria-label={
+              currentNominated
+                ? 'Tonight’s best conversation. Tap to unmark.'
+                : 'Mark as tonight’s best conversation'
+            }
+            aria-pressed={currentNominated}
+            data-selected={currentNominated}
+            onClick={toggleNomination}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                d="M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z"
+                fill={currentNominated ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <span className="nominate__note" data-on={nominationNote && currentNominated} aria-live="polite">
+            {nominationNote && currentNominated ? 'Tonight’s best conversation' : ''}
+          </span>
+        </div>
+      )}
 
       {!poolEmpty && !menuOpen && (
         <div className="rate" onPointerDown={(e) => e.stopPropagation()}>
@@ -751,6 +894,45 @@ export default function App() {
                   <div className="pill-grid">
                     {CHALLENGE_PACKS.map(({ category }) => categoryPill(category))}
                   </div>
+                </div>
+
+                <button type="button" className="menu-about-link" onClick={() => setMenuView('about')}>
+                  About Sip the Tea
+                </button>
+              </>
+            ) : menuView === 'about' ? (
+              <>
+                <button
+                  type="button"
+                  className="menu-back"
+                  onClick={() => setMenuView('categories')}
+                >
+                  ‹ Categories
+                </button>
+
+                <h2 className="menu-title">About Sip the Tea</h2>
+                <div className="menu-about">
+                  <p>
+                    Sip the Tea began around a dinner table, with friends asking the questions they
+                    actually wanted answered.
+                  </p>
+                  <p>
+                    Today those conversations continue through every group that plays. Players suggest
+                    new questions, help surface the best ones, and gradually build a living collection
+                    of conversations worth having.
+                  </p>
+                  <p>
+                    It’s meant to be played out loud, with the phone mostly forgotten. A great night
+                    isn’t the one where you get through the most questions — it’s the one where a single
+                    question keeps the whole table talking.
+                  </p>
+                  <p>
+                    {flags.bestConversation &&
+                      'When that happens, tap the star to mark it as tonight’s best conversation. '}
+                    If there’s something you’ve always wanted to ask a room full of people, suggest
+                    it. That’s how the game grows.
+                  </p>
+                  <p className="menu-about__closer">Thanks for pulling up a chair.</p>
                 </div>
               </>
             ) : menuView === 'consent' && consentPack ? (

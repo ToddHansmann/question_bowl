@@ -12,10 +12,36 @@ into the deck.
 - The **☰** menu (top right) turns Base Questions and each expansion pack on
   and off, and holds **Suggest a Question**
 
+- The **☆** (top left) marks tonight's best conversation — one per session
+- **About Sip the Tea** sits at the bottom of the menu
+- A short welcome appears once, before a device's first game
+
 No accounts and nothing to sign up for. Still a static site, plus one small
 write-only Supabase backend for ratings, suggestions and a thin event stream
 — see [Ratings & suggestions](#ratings--suggestions) and
 [Analytics & the admin dashboard](#analytics--the-admin-dashboard) below.
+
+## The recommendation foundation
+
+Sip the Tea is evolving from a deck into a recommendation engine for
+in-person conversations. The foundation for that — permanent question and
+revision ids, play telemetry, the recommendation interfaces, manual tags, and
+the community question workflow — shipped on 2026-09-13 without changing how
+the game plays. Start here:
+
+| Doc | What it's for |
+| --- | --- |
+| [docs/strategy.md](docs/strategy.md) | Vision, doctrine, open questions, decision log — the living strategy |
+| [docs/roadmap.md](docs/roadmap.md) | Shuffle → rules → learning → arcs, without rewrites |
+| [docs/architecture/recommendation.md](docs/architecture/recommendation.md) | Policy, generator, ranker, arc, evaluation contracts |
+| [docs/telemetry-spec.md](docs/telemetry-spec.md) | Exactly what is recorded and what every field means |
+| [docs/schema.md](docs/schema.md) | Tables, views, functions, access model |
+| [docs/implementation.md](docs/implementation.md) | Code map; tagging; community workflow; flags; checking telemetry |
+| [docs/migration-notes.md](docs/migration-notes.md) | Deploy order, verification, rollback |
+| [docs/adr/](docs/adr/README.md) | Architecture decision records |
+
+Every database migration, including the ones applied before this, is in
+[`supabase/migrations/`](supabase/migrations).
 
 ## Run it
 
@@ -49,7 +75,8 @@ needed locally — `npm run dev` is caught by `import.meta.env.DEV` regardless.
 ```bash
 npm run build     # → dist/
 npm run preview   # serve the built site
-npm test          # deck logic: shuffling, history, no repeats
+npm test          # deck, catalog, recommendation policy, telemetry
+npm run test:db   # every migration on an in-process Postgres, exercised as anon/admin
 ```
 
 ## Deploy
@@ -198,6 +225,11 @@ the counts and the two calls flagged for editorial review rather than
 implemented as originally suggested.
 
 ## How the deck works
+
+The next card is chosen by a recommendation policy — today only
+`UniformRandomPolicy` (`src/recommendation/uniformRandom.ts`), which is the
+behaviour described below, now with an exact, logged probability for every
+draw. See [docs/architecture/recommendation.md](docs/architecture/recommendation.md).
 
 [`src/deck.ts`](src/deck.ts) holds a shuffled *bag* — not of every question,
 but of every question in the current **pool**: whichever of Base Questions

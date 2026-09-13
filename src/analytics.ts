@@ -37,7 +37,7 @@ const EXCLUDE_DEVICE_KEY = 'qb.excludeDevice.v1'
  */
 export const SESSION_COMPLETE_AT = 5
 
-function uuid(): string {
+export function uuid(): string {
   try {
     return crypto.randomUUID()
   } catch {

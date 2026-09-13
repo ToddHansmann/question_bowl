@@ -180,6 +180,69 @@ body {
   opacity: 0.78;
 }
 
+.landing__support {
+  margin: 0.45em 0 0;
+  max-width: 22em;
+  font-size: clamp(0.92rem, min(3.9vw, 2.1vh), 1.08rem);
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  opacity: 0.66;
+}
+
+/* ------------------------------------------------------------ welcome --- */
+
+/* The one-time welcome before a first game. Same ground and type as the
+   landing screen; the lines arrive one after another, quickly enough that
+   the whole thing reads in well under fifteen seconds. */
+.welcome__inner {
+  max-width: min(100%, 22em);
+}
+
+.welcome__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(1.35rem, min(6.2vw, 3.6vh), 2rem);
+  line-height: 1.24;
+  letter-spacing: -0.004em;
+}
+
+.welcome__lines li,
+.welcome__closer {
+  animation: landing-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 380ms + 120ms);
+  text-wrap: balance;
+}
+
+.welcome__lines li + li {
+  margin-top: 0.32em;
+}
+
+.welcome__closer {
+  margin: clamp(22px, 4vh, 34px) 0 0;
+  font-size: clamp(1rem, min(4.4vw, 2.4vh), 1.25rem);
+  letter-spacing: 0.01em;
+  opacity: 0.78;
+  /* Its own keyframes, so the fade-in lands on 0.78 rather than 1. */
+  animation-name: welcome-closer-in;
+}
+
+@keyframes welcome-closer-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 0.78;
+    transform: none;
+  }
+}
+
+.welcome__cta {
+  animation: landing-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 2000ms;
+}
+
 .cta {
   margin-top: clamp(34px, 6.5vh, 60px);
   padding: 0.92em 1.55em;
@@ -456,6 +519,73 @@ body {
   outline: 2px solid rgba(255, 255, 255, 0.65);
   outline-offset: 2px;
   border-radius: 12px;
+}
+
+/* ---------------------------------------------------------- nominate --- */
+
+/* "Tonight's best conversation" — mirrors the menu button in the opposite
+   corner, so it's always within reach and never crowds the question. */
+.nominate {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nominate__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  opacity: 0.5;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nominate__btn:hover {
+    opacity: 1;
+  }
+}
+
+.nominate__btn:active {
+  transform: scale(0.9);
+}
+
+.nominate__btn[data-selected='true'] {
+  opacity: 1;
+}
+
+.nominate__btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.nominate__note {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate3d(-4px, 0, 0);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.nominate__note[data-on='true'] {
+  opacity: 0.85;
+  transform: none;
 }
 
 /* -------------------------------------------------------------- menu --- */
@@ -981,6 +1111,47 @@ body {
   opacity: 0.8;
 }
 
+/* -------------------------------------------------------------- about --- */
+
+.menu-about-link {
+  align-self: center;
+  margin-top: 22px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  opacity: 0.72;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-about-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.menu-about p {
+  margin: 0 0 14px;
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.menu-about__closer {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.88rem !important;
+  opacity: 0.72;
+}
+
 /* --------------------------------------------------------- motion off --- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -992,8 +1163,17 @@ body {
   .screen--enter,
   .menu-backdrop,
   .menu-panel,
-  .menu-backdrop__dim::after {
+  .menu-backdrop__dim::after,
+  .welcome__lines li,
+  .welcome__closer,
+  .welcome__cta {
     animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .nominate__btn,
+  .nominate__note {
+    transition: none;
   }
 
   .q-wrap,

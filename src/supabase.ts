@@ -116,10 +116,30 @@ export async function restInsert(
   table: string,
   row: Record<string, unknown>,
 ): Promise<boolean> {
-  if (!isProductionHost()) return false
+  const status = await restInsertStatus(table, row)
+  return typeof status === 'number' && status >= 200 && status < 300
+}
+
+/**
+ * The outcome of one insert attempt, for callers that need to tell failures
+ * apart (the telemetry outbox):
+ * - `'disabled'` — this page must never write (not production, or no
+ *   credentials). Retrying can't help.
+ * - `0`          — the request never completed (offline, blocked, aborted).
+ * - an HTTP status otherwise. 409 means a row with that primary key already
+ *   exists — for rows with client-generated ids, that is "already delivered".
+ */
+export type InsertStatus = number | 'disabled'
+
+export async function restInsertStatus(
+  table: string,
+  body: Record<string, unknown> | Record<string, unknown>[],
+  options: { keepalive?: boolean } = {},
+): Promise<InsertStatus> {
+  if (!isProductionHost()) return 'disabled'
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     warnOnce()
-    return false
+    return 'disabled'
   }
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
@@ -132,11 +152,13 @@ export async function restInsert(
         // anyway — ask for no representation rather than a 401 on the echo.
         Prefer: 'return=minimal',
       },
-      body: JSON.stringify(row),
+      body: JSON.stringify(body),
+      // Lets a request started during `pagehide` outlive the page.
+      keepalive: options.keepalive === true,
     })
-    return res.ok
+    return res.status
   } catch {
-    return false
+    return 0
   }
 }
 
