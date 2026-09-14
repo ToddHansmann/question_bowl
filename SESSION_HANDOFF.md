@@ -1,11 +1,11 @@
-# Session handoff: engineering complete; one owner action remains
+# Session handoff: MVP complete, fully operational in production
 
 **Written:** 2026-09-14, end of session
 **For:** a brand-new Claude Code session with no memory of this work
 **Repo:** `C:\Users\toddh\OneDrive\Documents\Question Bowl\question_bowl` (Sip the Tea, live at sipthetea.app)
-**Phase:** Production rollout is complete, verified end to end. **Catalog
-Sync is the only remaining task, and it cannot be done by a Claude Code
-session — see §2 for exactly why, not just that it's pending.**
+**Phase:** Production rollout is complete. **Catalog Sync has been run by
+the owner — every required task is done and verified end to end.** Nothing
+engineering-side is outstanding.
 
 ---
 
@@ -19,17 +19,24 @@ session — see §2 for exactly why, not just that it's pending.**
 | **`admin_traffic` migration — applied and verified.** | `supabase/migrations/20260914220000_admin_traffic_engaged_visitors.sql` is live on QB Production. Confirmed by pulling the function's actual definition back from the database (`pg_get_functiondef`) and diffing it against the committed file — identical. Confirmed the underlying numbers are correct by replicating the query without the `is_admin()` gate: 3 engaged visitors (from 4 real `session_started` events — one visitor started more than one session), 88 unique visitors, 82 one-event visitors, 1 session completed. `/admin`'s Traffic section will show these correctly the next time an admin signs in. |
 | **Historical analytics cleanup — done, from an earlier session.** | Two devices reclassified `is_test = true`. |
 | **Test-device forward-fix — done this session.** | See §3: a dedicated install path now exists so a Home Screen icon can be permanently test-tagged. |
-| **Catalog Sync — the one thing left, and a Claude Code session cannot do it. Not a permission setting; see §2.** | `question_catalog` and every related table are still 0 rows. |
+| **Catalog Sync — done.** | The owner signed into `/admin` and ran it. Verified directly in the database: `question_catalog` 436 rows — 114 `original` (113 canon + 1 archived) and 322 `todd` (321 canon + 1 archived); no `community`-origin questions yet, since none have gone through the accept-as-draft workflow. `question_revisions` 436, `question_lifecycle_events` 436, `tag_dimensions` 7, `tag_values` 28. `question_tag_assignments` is 0 by design — sync registers the tag *scheme*, not per-question tags; tagging the 436 questions individually is optional future polish, not a blocker (§6). |
+| **Recommendation telemetry — confirmed live and clean.** | Real (non-test) rows already exist end to end: `play_sessions` 4, `card_impressions` 11, `card_exits` 10 reported + 2 inferred, `impression_feedback` 1, `conversation_nominations` (in effect) 1. Both integrity checks in `admin_telemetry_health`'s logic are 0: no impression lacks a session, no draw lacks a probability. (Calling `admin_telemetry_health` directly from a raw DB connection returns all zeros regardless of `include_test` — that's the same `is_admin()`/JWT gap as Catalog Sync, not a real problem; replicate its query without the `is_admin()` filter to see real numbers, the way `admin_traffic` was verified.) |
 | **Tests at HEAD** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass (12 migrations, all applied to production now) · `npm run build`: succeeds. |
 
 ---
 
-## 2. Why Catalog Sync specifically cannot be done by an assistant session
+## 2. Why Catalog Sync specifically couldn't be done by an assistant session (resolved — kept for the record)
 
-This isn't the same kind of blocker the migration was. The migration was
-blocked by this session's own tool-permission classifier — a Claude Code
-setting, and it went through cleanly on a later retry with no new grant
-from the owner. **Catalog Sync is blocked by the database's own
+This is history now — the owner ran the sync themselves and it's verified
+in §1 — but the reasoning is worth keeping, since the same shape of
+limitation applies to `admin_review_submission`, `admin_transition_question`,
+`admin_revise_draft`, and `admin_telemetry_health` too, and will come up
+again.
+
+This wasn't the same kind of blocker as the traffic migration. The
+migration was blocked by this session's own tool-permission classifier — a
+Claude Code setting, and it went through cleanly on a later retry with no
+new grant from the owner. **Catalog Sync was blocked by the database's own
 authentication design, which no permission setting changes:**
 
 `admin_sync_catalog` (like every editorial function) calls
@@ -44,27 +51,32 @@ ever sent one — there was no HTTP request with a token attached. This
 would be true no matter how permissive the Claude Code tool-permission
 model became; it is a property of how Supabase Auth works, not a setting.
 
-**The only way to give an assistant that context would be to hand it the
-owner's password or an active session token.** Both are declined,
+**The only way to give an assistant that context would have been to hand
+it the owner's password or an active session token.** Both were declined,
 deliberately, independent of what's technically possible:
 - Entering or handling a password is not something this kind of session
   does under any grant of permission — it's excluded outright, the same
   way it would refuse to enter one into any other login form.
 - A live session token would work technically (it's exactly what a
-  browser sends), but using it would mean an assistant registers ~430
-  questions and revisions under the owner's identity without the owner
+  browser sends), but using it would have meant an assistant registering
+  436 questions and revisions under the owner's identity without the owner
   personally taking that action — which defeats the entire point of
   `admin_sync_catalog` requiring `require_admin()` in the first place
   (ADR 0006: "every transition is a person's decision," attributed to a
   real, accountable email in an append-only audit table). Forging that
-  attribution would be worse than not syncing at all.
+  attribution would have been worse than not syncing at all.
 - There is no "impersonate this user" or "mint a session for this email"
   capability exposed through this session's Supabase tools, and it
   wouldn't be used even if there were, for the same reason.
 
-**What it actually takes:** sign into `sipthetea.app/admin`, click
-**Catalog → "Sync this build."** One click, under a second to run. Nothing
-about this MVP's engineering is waiting on anything else.
+**Same caveat applies to reading `admin_telemetry_health` from a raw
+connection** — it also gates on `is_admin()`, so calling it directly
+returns all zeros regardless of `include_test`, even when the underlying
+tables have real rows (confirmed in §1: `play_sessions` has 4 real rows,
+the function still reports `sessions: 0` when called this way). That's not
+a data problem — replicate the function's query without the `is_admin()`
+filter (as done for both `admin_traffic` and `admin_telemetry_health` this
+session) to see real numbers from outside `/admin`.
 
 ---
 
@@ -152,8 +164,9 @@ with neither flag set, the real manifest is untouched.
 ## 5. Hard rules for the next session
 
 - **Never sign into `/admin` or ask the owner for the admin password —
-  and never accept one if offered, even to unblock Catalog Sync.** See §2
-  for exactly why that specific task can't be delegated around.
+  and never accept one if offered, even to unblock an `is_admin()`-gated
+  action.** See §2 for exactly why that class of task can't be delegated
+  around.
 - Any push to `main` deploys automatically.
 - Don't reclassify or delete telemetry/analytics rows without new evidence
   and the same quantify-first, verify-first discipline used earlier this
@@ -167,17 +180,23 @@ with neither flag set, the real manifest is untouched.
 
 ---
 
-## 6. What remains before beta vs. after
+## 6. What remains — nothing required; everything below is optional polish
 
-**Required before beta, and cannot be done by a Claude Code session (§2):**
-- Catalog Sync (`/admin` → Catalog → "Sync this build") — one click, once
-  signed in. Everything else engineering could do is done.
+**Required before beta:** nothing. Catalog Sync ran 2026-09-14, verified
+in §1. All migrations applied. Telemetry confirmed flowing end to end with
+zero integrity violations. Traffic metrics redesigned and verified. The
+test-device tracking gap is closed architecturally. `main` is deployed and
+READY.
 
 **Recommended, not blocking:**
-- Set up the dedicated test Home Screen icon (§4) so this doesn't recur.
-- Tag the ~430 questions by hand once Catalog Sync has run.
-- Watch Data Health and the new Engaged-visitors number for a week of real
-  traffic.
+- Set up the dedicated test Home Screen icon (§4) on the owner's iPhone,
+  if not already done, so a future Home Screen install doesn't recur as a
+  polluting device.
+- Tag the 436 questions by hand (`question_tag_assignments` is 0 — the
+  scheme is registered but nothing's assigned yet) to improve
+  recommendation quality once there's a workflow for it.
+- Watch Data Health and the Engaged-visitors number for a week of real
+  traffic now that the catalog and telemetry are both live.
 
 **Future roadmap:** `docs/strategy.md` Q3/Q4/Q5/Q8, Stage 2 of the
 roadmap, minor DB index advisories — none beta-relevant.
@@ -188,4 +207,4 @@ roadmap, minor DB index advisories — none beta-relevant.
 
 Copy and paste:
 
-> Read `SESSION_HANDOFF.md` at the repo root. Confirm `main`'s current HEAD, run `npm test` and `npm run test:db`, and confirm (read-only) whether Catalog Sync has been run yet (`select count(*) from question_catalog` — 0 means not yet). Then [describe what you want done next].
+> Read `SESSION_HANDOFF.md` at the repo root. Confirm `main`'s current HEAD, run `npm test` and `npm run test:db`, and spot-check production is still healthy (`select count(*) from question_catalog` should be 436; `admin_traffic`/`admin_telemetry_health` need to be called through `/admin` or replicated without the `is_admin()` filter per §2, not called directly). Then [describe what you want done next].
