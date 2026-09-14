@@ -92,7 +92,7 @@ export function CommunityQuestions({ client, includeTest }: { client: SupabaseCl
   }
 
   function accept(row: QueueRow) {
-    const text = window.prompt('Wording for the draft (edit if needed):', row.submitted_text)
+    const text = window.prompt('Wording for this editable draft — reword it now, or keep it as submitted:', row.submitted_text)
     if (text === null) return
     const category = window.prompt(
       `Category — one of: ${CATEGORIES.join(', ')}. Leave blank to play alongside Base questions.`,
@@ -190,8 +190,10 @@ export function CommunityQuestions({ client, includeTest }: { client: SupabaseCl
         </div>
       </div>
       <p className="adm-note adm-note--tight">
-        Draft → Experimental → Canon → Archived. Every move is yours; nothing promotes itself. Drafts live only here;
-        Experimental and Canon ship when their line is in <code>communityQuestions</code> in questions.ts.
+        Draft → Experimental → Canon → Archived. Every move is yours; nothing promotes itself.{' '}
+        <strong>Accepting creates an editable draft</strong> under a permanent id — reword it however you like; the
+        original submission stays on record, untouched, alongside it. Drafts live only here; Experimental and Canon
+        ship when their line is in <code>communityQuestions</code> in questions.ts.
       </p>
       {error && <p className="adm-error">{error}</p>}
       {!error && shown.length === 0 && <p className="adm-note">Nothing waiting.</p>}
@@ -225,7 +227,7 @@ export function CommunityQuestions({ client, includeTest }: { client: SupabaseCl
                   {row.decision === null && (
                     <>
                       <button type="button" className="adm-chip adm-chip--primary" disabled={disabled} onClick={() => accept(row)}>
-                        Accept as draft
+                        Accept as editable draft
                       </button>
                       <button type="button" className="adm-chip" disabled={disabled} onClick={() => decline(row)}>
                         Decline

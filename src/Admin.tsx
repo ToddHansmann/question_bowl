@@ -422,20 +422,25 @@ export default function Admin() {
 
   const rated = metrics.byQuestion.filter((q) => n(q.total) >= minVotes)
   // A "most/least liked" question must actually have a majority that way —
-  // top-8-by-percentage alone could include a 40% question if nothing else
+  // ranking by percentage alone could include a 40% question if nothing else
   // qualified, which isn't liked at all. Ties at exactly 50% belong to
-  // neither list.
+  // neither list. No cap on either list: the card showing it reports the
+  // real count, and expands to show every one of them.
   const mostLiked = [...rated]
     .filter((q) => n(q.positive_pct) > 50)
     .sort((a, b) => n(b.positive_pct) - n(a.positive_pct) || n(b.total) - n(a.total))
-    .slice(0, 8)
   const leastLiked = [...rated]
     .filter((q) => n(q.positive_pct) < 50)
     .sort((a, b) => n(a.positive_pct) - n(b.positive_pct) || n(b.total) - n(a.total))
-    .slice(0, 8)
+  // "Polarizing" means a real split, not just a thin sample sitting at 0%
+  // or 100% because only one side has voted at all — that scores 0 on the
+  // polarization formula (the least polarizing value), so it would never
+  // rank highly on its own, but a small pool of rated questions could still
+  // pad a fixed-size list with one-sided rows. Requiring both sides removes
+  // that rather than just capping the list shorter.
   const mostPolarizing = [...rated]
+    .filter((q) => n(q.thumbs_up) > 0 && n(q.thumbs_down) > 0)
     .sort((a, b) => n(b.polarization) - n(a.polarization) || n(b.total) - n(a.total))
-    .slice(0, 8)
 
   return (
     <Shell
@@ -664,34 +669,38 @@ export default function Admin() {
               </label>
             </div>
 
-            <h3>Most liked</h3>
-            <p className="adm-note adm-note--tight">Rated questions with more thumbs up than down.</p>
-            <ExpandableQuestionTable
-              rows={mostLiked}
-              metric="positive_pct"
-              minVotes={minVotes}
-              emptyMessage={rated.length > 0 ? 'No question has a positive majority yet.' : undefined}
-            />
-
-            <h3>Least liked</h3>
-            <p className="adm-note adm-note--tight">Rated questions with more thumbs down than up.</p>
-            <ExpandableQuestionTable
-              rows={leastLiked}
-              metric="positive_pct"
-              minVotes={minVotes}
-              emptyMessage={rated.length > 0 ? 'No question has a negative majority yet.' : undefined}
-            />
-
-            <h3>Most polarizing</h3>
-            <p className="adm-note adm-note--tight">
-              100 is a dead-even split; 0 is unanimous.
-            </p>
-            <ExpandableQuestionTable rows={mostPolarizing} metric="polarization" minVotes={minVotes} />
-
-            <details className="adm-details">
-              <summary className="adm-summary">Every rated question ({metrics.byQuestion.length})</summary>
-              <QuestionTable rows={metrics.byQuestion} metric="positive_pct" minVotes={0} />
-            </details>
+            <div className="adm-tiles adm-cards">
+              <RankedQuestionCard
+                label="Most liked"
+                hint="Rated questions with more thumbs up than down."
+                rows={mostLiked}
+                metric="positive_pct"
+                minVotes={minVotes}
+                emptyMessage={rated.length > 0 ? 'No question has a positive majority yet.' : undefined}
+              />
+              <RankedQuestionCard
+                label="Least liked"
+                hint="Rated questions with more thumbs down than up."
+                rows={leastLiked}
+                metric="positive_pct"
+                minVotes={minVotes}
+                emptyMessage={rated.length > 0 ? 'No question has a negative majority yet.' : undefined}
+              />
+              <RankedQuestionCard
+                label="Most polarizing"
+                hint="100 is a dead-even split; 0 is unanimous. Needs votes on both sides."
+                rows={mostPolarizing}
+                metric="polarization"
+                minVotes={minVotes}
+                emptyMessage={rated.length > 0 ? 'No question has votes on both sides yet.' : undefined}
+              />
+              <RankedQuestionCard
+                label="Every rated question"
+                rows={metrics.byQuestion}
+                metric="positive_pct"
+                minVotes={0}
+              />
+            </div>
           </section>
 
           <section className="adm-section">
@@ -759,18 +768,23 @@ function Tile({ label, value, note }: { label: string; value: number | string; n
 }
 
 /**
- * Wraps `QuestionTable` for the three ranked lists (Most liked, Least liked,
- * Most polarizing): three rows at rest, an Expand button reveals the rest of
- * whatever the caller passed in — capped at 8 by the caller, never by this.
- * "Every rated question" doesn't use this; truncating a list whose entire
- * point is completeness would defeat it.
+ * A Content performance list (Most liked, Least liked, Most polarizing,
+ * Every rated question), presented as a count-forward card matching the
+ * tile design used everywhere else — closed, it reads like any other tile;
+ * open, it's the full table for every question in that count, never a
+ * truncated preview of it.
  */
-function ExpandableQuestionTable({
+function RankedQuestionCard({
+  label,
+  hint,
   rows,
   metric,
   minVotes,
   emptyMessage,
 }: {
+  label: string
+  /** A one-line clarification shown only once the card is open, above the table. */
+  hint?: string
   rows: QuestionRow[]
   metric: 'positive_pct' | 'polarization'
   minVotes: number
@@ -779,21 +793,17 @@ function ExpandableQuestionTable({
    *  there being no ratings at all. */
   emptyMessage?: string
 }) {
-  const [expanded, setExpanded] = useState(false)
   return (
-    <>
-      <QuestionTable
-        rows={expanded ? rows : rows.slice(0, 3)}
-        metric={metric}
-        minVotes={minVotes}
-        emptyMessage={emptyMessage}
-      />
-      {rows.length > 3 && (
-        <button type="button" className="adm-expand" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? 'Show fewer' : `Show ${rows.length - 3} more`}
-        </button>
-      )}
-    </>
+    <details className="adm-card">
+      <summary className="adm-card__summary">
+        <span className="adm-card__value">{rows.length.toLocaleString()}</span>
+        <span className="adm-card__label">{label}</span>
+      </summary>
+      <div className="adm-card__body">
+        {hint && <p className="adm-note adm-note--tight">{hint}</p>}
+        <QuestionTable rows={rows} metric={metric} minVotes={minVotes} emptyMessage={emptyMessage} />
+      </div>
+    </details>
   )
 }
 

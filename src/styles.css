@@ -1152,6 +1152,46 @@ body {
   opacity: 0.72;
 }
 
+/* A quiet, functional exit from the warm copy above it — not styled to look
+   like a feature, since it's for whoever is testing the app, not a player. */
+.menu-about__tester {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.menu-about__tester-note {
+  margin: 0 0 8px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.78rem !important;
+  opacity: 0.6;
+}
+
+.menu-about__tester-btn {
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  opacity: 0.6;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-about__tester-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* --------------------------------------------------------- motion off --- */
 
 @media (prefers-reduced-motion: reduce) {

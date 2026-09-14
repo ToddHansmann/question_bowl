@@ -213,31 +213,6 @@
   font-size: 0.74rem;
 }
 
-/* -------------------------------------------------------- expand/show --- */
-
-.adm-expand {
-  margin: 10px 0 4px;
-  padding: 7px 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.adm-expand:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.adm-expand:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
 /* --------------------------------------------------------------- tiles --- */
 
 .adm-tiles {
@@ -273,6 +248,83 @@
   color: var(--muted);
   font-size: 0.72rem;
   opacity: 0.85;
+}
+
+/* ------------------------------------------------------- ranked cards --- */
+
+/*
+ * A Content performance list, collapsed to a tile: a count and a label,
+ * identical footprint to `.adm-tile` at rest. `<details>` gives the
+ * expand/collapse behavior natively — no React state, keyboard-operable and
+ * screen-reader-announced for free. An open card claims the full row width
+ * (its table needs it) rather than stretching the grid to fit a wide table
+ * inside one narrow tile-sized column.
+ */
+.adm-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.adm-card[open] {
+  grid-column: 1 / -1;
+}
+
+.adm-card__summary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 44px 16px 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.adm-card__summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A hand-drawn chevron rather than the native disclosure triangle, so it
+   matches the rest of the app's own iconography instead of the browser's. */
+.adm-card__summary::after {
+  content: '';
+  position: absolute;
+  top: 22px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.adm-card[open] > .adm-card__summary::after {
+  transform: rotate(-135deg);
+}
+
+.adm-card__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.adm-card__value {
+  font-size: 1.85rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-card__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.adm-card__body {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
 }
 
 /* -------------------------------------------------------------- tables --- */
@@ -428,12 +480,6 @@
 
 .adm-error {
   color: #b4231a;
-}
-
-/* Separates a collapsed table from whatever ranked list sits above it
-   (e.g. "Every rated question" under "Most polarizing"). */
-.adm-details {
-  margin-top: 24px;
 }
 
 .adm-summary {
