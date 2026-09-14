@@ -4,7 +4,7 @@
 > changes, don't delete the old reasoning: record the change in the
 > **Decision log** at the bottom.
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 ---
 
@@ -43,7 +43,11 @@ one level and fight at another, so the order matters.
 | **A group over time** | They agree. A group that had a great night comes back. | Measure engagement as *return*, not intensity. |
 
 **Primary objective:** conversations the group is glad it had.
-**Business check:** groups and devices come back.
+**Business check:** groups and devices come back. "Groups" is the intent;
+today it can only be measured as `device_id` returning, since there is no
+group identity yet (Q5) — a gap between intent and measurement, not a
+redefinition of the objective. Storage mechanics behind that gap are covered
+in [telemetry-spec.md](telemetry-spec.md#identity-and-privacy), not here.
 **Never success metrics:** cards viewed, time in app, votes cast, taps,
 session length.
 
@@ -70,7 +74,7 @@ against it explicitly. The product-level doctrine they serve is
 2. **The app will eventually recommend conversation arcs rather than
    individual questions.**
 3. **Every question exists within context. There is no global question score.**
-4. **Collect raw events. Never store derived scores that can't be recomputed.**
+4. **Collect raw events. Never store derived scores.** (ADR-000 principle 5.)
 5. **Recommendation systems will change repeatedly. Telemetry should never
    need redesign.**
 6. **The random shuffle is the permanent baseline.** Every future engine must
@@ -240,16 +244,28 @@ random holdout.
 
 Decisions still to make. Move each to the Decision log once made.
 
+Q1, Q2, Q6 and Q7 were resolved on 2026-09-14 review — see the Decision log.
+The remaining open questions are genuinely undecided: nothing in the shipped
+architecture implies an answer, and none of them blocks this branch.
+
 | # | Question | Notes |
 |---|---|---|
-| Q1 | **Room read:** is a 1–2 tap context question at session start acceptable friction, or should context be inferred until players offer it? | Schema is ready either way. Measure drop-off if tried. |
-| Q2 | **Holdout share** once a second policy exists: 10%? 20%? | Larger holdout = faster, surer evaluation; smaller = fewer players on the plain shuffle. |
-| Q3 | **Outcome definition** for Stage 2 evaluation. | Candidate: "session has a nomination" + "device returns within 14 days". Must be written before any optimization. |
-| Q4 | **Generated question drafts:** may editors use AI to *draft* questions for gaps, provided humans approve? | Tags are manual-only (decided). Question drafting is undecided. |
-| Q5 | **Persistent groups:** are opt-in, device-local "tables" in scope? | Big retention upside; biggest privacy surface. |
-| Q6 | **The first-card repeat quirk** (the first card can come round once more in the first pass). Fix or keep? | Pre-existing; preserved for now. |
-| Q7 | **When does experimental rotation need a server read** instead of shipping through `questions.ts`? | Likely when experimental questions number in the dozens. |
-| Q8 | **Contributor credit:** should players ever see "suggested by the community" on a card? | Must not become a leaderboard. |
+| Q3 | **Outcome definition** for Stage 2 evaluation. | Working draft: "session has a nomination" + "device returns within 14 days" (§10 caveat below). Needs real tagging and session-volume data before it can be finalized — that's the Stage 1 → 2 gate in roadmap.md, not something the architecture alone can settle. |
+| Q4 | **Generated question drafts:** may editors use AI to *draft* questions for gaps, provided humans approve? | Tags are manual-only (decided, ADR 0005). Question drafting is an editorial-policy question, not an architectural one — nothing here depends on the answer. |
+| Q5 | **Persistent groups:** are opt-in, device-local "tables" in scope? | Big retention upside; biggest privacy surface. No architecture for it exists yet; `ContextSnapshot.dimensions` could hold it later without a schema change, but whether to build it is a product and privacy decision. |
+| Q8 | **Contributor credit:** should players ever see "suggested by the community" on a card? | Must not become a leaderboard. Product/UX call; the lifecycle design (ADR 0006) works the same either way. |
+
+### Note on Q3's outcome definition
+
+The candidate outcome ("device returns within 14 days") measures return per
+`device_id`, which is what §2's "devices come back" actually tracks — there
+is no group identity yet (Q5). On iOS, Safari can clear a page's storage,
+`device_id` included, after roughly a week of not visiting the site (an app
+added to the home screen is exempt), so a 14-day window will undercount
+returning iPhone players who don't re-add the shortcut. This doesn't block
+Stage 1; it's a caveat the outcome definition should account for (a shorter
+window, or treating iOS Safari separately) when it's finalized at the Stage
+1 → 2 gate.
 
 ---
 
@@ -272,3 +288,9 @@ Decisions still to make. Move each to the Decision log once made.
 | 2026-09-13 | Build/device feature flags; experimental questions and skip gesture off by default. | ADR 0009 |
 | 2026-09-13 | User-facing messaging: living conversation game; never mention the technology. | §4 |
 | 2026-09-13 | Public voting, leaderboards and contributor profiles are out of scope. | roadmap.md |
+| 2026-09-14 | Privacy policy and legal disclosures are a separate product/legal concern, outside the recommendation-foundation architecture review, unless an architectural dependency or implementation blocker is found. | This log |
+| 2026-09-14 | ADR-000 principle 4 clarified: gameplay surfaces do not discuss telemetry; any required disclosures belong in a separate Privacy Policy. (Previously read "players are never told the game is collecting data".) | ADR-000 |
+| 2026-09-14 | **Q1 resolved:** an optional 1–2 tap room read at session start is acceptable. If skipped, gameplay proceeds with unknown context (`group`/`ceilings` stay `null`). No schema or code change needed now — `ContextSnapshot.group`/`ceilings` and their columns already exist for Stage 2 to fill in. | §10 (was Q1); roadmap.md Stage 2 |
+| 2026-09-14 | **Q2 resolved: holdout share is 20%.** No new architectural decision — `docs/strategy.md` §9 and `docs/roadmap.md`'s Stage 2 table already stated 20% as settled fact while this open-questions table listed it as still undecided. This entry closes that documentation inconsistency by recording the number both other places already committed to. | §9; roadmap.md Stage 2 |
+| 2026-09-14 | **Q6 resolved: keep the first-card repeat quirk as is.** It is already implemented (`makeBag`'s mount-time reset in `src/App.tsx`, `PassWithoutReplacementGenerator` in `src/recommendation/uniformRandom.ts`), documented as intentional (ADR 0004), and covered by a test (`test/recommendation.test.ts:58`, "the current card stays in the new pass and can come round again later"). Fixing it is a gameplay change with its own tradeoffs (it would need to decide what "seen this pass" means across pool changes) and isn't required by anything in this branch's architecture. Revisit only if it becomes a real player complaint, as its own decision. | ADR 0004; test/recommendation.test.ts |
+| 2026-09-14 | **Q7 resolved: no server read for experimental rotation yet.** `docs/roadmap.md` already names the trigger ("likely when experimental questions number in the dozens") and flags that crossing it needs its own ADR (ADR 0006 rejected a database-backed runtime read "for now," for the same reason: it adds a network read in front of the first card and bypasses code review for player-visible content). Nothing in this branch needs it; revisit by that trigger. | ADR 0006; roadmap.md |

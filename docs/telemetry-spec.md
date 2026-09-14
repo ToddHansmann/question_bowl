@@ -34,6 +34,14 @@ are coarse and recorded once per session. **Excluded devices** (the admin
 toggle) record nothing. **Non-production hosts** (local dev, Vercel previews)
 send nothing; rows are discarded by the outbox.
 
+**`device_id` is a browser, not a group or a person**, and it isn't always
+even the same browser for long: Safari's tracking prevention can clear
+script-written storage — `device_id` included — after roughly a week without
+a visit (a page added to the home screen is exempt). Any "return" outcome
+built on `device_id` (strategy.md §10, Q3) will undercount returning iPhone
+Safari players who don't re-add the shortcut, and should account for that —
+a shorter window, or treating iOS Safari separately — before it's finalized.
+
 ## Lifecycle of a session
 
 ```

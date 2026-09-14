@@ -85,8 +85,10 @@ people who play.
 *In practice:* no accounts are required to play; ids are anonymous and random;
 nothing anyone says is ever recorded; no third party receives play data;
 devices can be excluded; nothing is inferred about a person's identity from
-the packs they choose. Players are never told the game is "collecting data".
-They are told, truthfully, that great conversations shape tomorrow's questions.
+the packs they choose. Gameplay surfaces do not discuss telemetry; there,
+players are told, truthfully, that great conversations shape tomorrow's
+questions. Any required disclosures about data belong in a separate Privacy
+Policy, not in the game.
 
 ### 5. Recommendation systems may change repeatedly, but telemetry should remain stable.
 
