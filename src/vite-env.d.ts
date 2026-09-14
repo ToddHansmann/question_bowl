@@ -11,6 +11,10 @@ interface ImportMetaEnv {
    * Vercel's Production environment for the deployed site to write anything.
    */
   readonly VITE_PRODUCTION_HOSTNAME?: string
+  /** Build-level feature flag overrides, e.g. `experimentalQuestions,-onboarding`. See src/flags.ts. */
+  readonly VITE_FLAGS?: string
+  /** Optional build identifier recorded on each play session (e.g. a commit sha). */
+  readonly VITE_APP_BUILD?: string
 }
 
 interface ImportMeta {

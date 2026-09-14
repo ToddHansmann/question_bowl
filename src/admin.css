@@ -428,6 +428,64 @@
   color: #b4231a;
 }
 
+.adm-summary {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------- editorial --- */
+
+.adm-editorial {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.adm-editorial__orig {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.adm-editorial__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.adm-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.adm-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.adm-chip--primary {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.adm-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.adm-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* The stable id, under the wording it currently has. */
 .adm-qid {
   display: block;

@@ -17,7 +17,14 @@
  * key on *position* in the active deck, which is why they are derived fresh
  * rather than stored — a retirement shifts every position after it, and
  * nothing may persist a position across sessions.
+ *
+ * Every wording of every question also has a **revision id**, derived from
+ * the text (catalog/revision.ts). Telemetry records revisions, so an edit
+ * never contaminates what was learned about the words that came before it.
  */
+import { flags } from './flags'
+import { isDealt, type LifecycleStatus, type ShippedStatus } from './catalog/lifecycle'
+import { revisionIdFor, sha256Hex } from './catalog/revision'
 
 export type Category =
   | 'Warm-up'
@@ -63,8 +70,12 @@ export type Pack = {
   consent?: string
 }
 
-/** Where a question came from — `baseQuestions` vs. `expansionQuestions`. */
-export type Source = 'original' | 'todd'
+/**
+ * Where a question came from — `baseQuestions`, `expansionQuestions`, or
+ * `communityQuestions`. Provenance, not status: a community question that
+ * becomes canon is still `'community'`.
+ */
+export type Source = 'original' | 'todd' | 'community'
 
 /**
  * A question is a question; a challenge is a dare. The distinction is only
@@ -96,6 +107,30 @@ export type BaseEntry = {
 export type Expansion = BaseEntry & {
   category: Category
   kind?: Kind
+}
+
+/**
+ * A community-submitted question that an editor has promoted out of Draft.
+ *
+ * Drafts never appear here — they live only in the database. The `id`
+ * (`com-0001`) was allocated by the database when the submission was accepted
+ * as a draft, and is copied here verbatim when an editor promotes it to
+ * Experimental; see docs/implementation.md → "Community questions".
+ *
+ * `status` is the lifecycle state this build ships with (see
+ * catalog/lifecycle.ts). The database's `question_lifecycle_events` holds the
+ * history of every decision; the admin dashboard flags any id whose status
+ * here disagrees with the latest decision there.
+ */
+export type CommunityEntry = {
+  id: string
+  text: string
+  /** `null` plays alongside Base questions, without an eyebrow. */
+  category: Category | null
+  kind?: Kind
+  status: Exclude<LifecycleStatus, 'draft'>
+  /** The `question_suggestions.id` this came from. */
+  submissionId: string
 }
 
 /* ------------------------------------------------------------------ base --- */
@@ -594,6 +629,19 @@ export const expansionQuestions: Expansion[] = [
 const activeBase = BASE_DECK.filter((q) => !q.retired)
 const activeExpansion = expansionQuestions.filter((q) => !q.retired)
 
+/* ------------------------------------------------------------ community --- */
+
+/**
+ * Community questions an editor has promoted to Experimental or beyond.
+ * Empty at launch. Add entries only through the editorial workflow in
+ * docs/implementation.md — never paste a raw submission in here.
+ */
+export const communityQuestions: CommunityEntry[] = []
+
+const activeCommunity = communityQuestions.filter((q) =>
+  isDealt(q.status, flags.experimentalQuestions),
+)
+
 /** The canonical originals still in play. Was 114; Dido's retirement makes it 113. */
 export const baseQuestions: string[] = activeBase.map((q) => q.text)
 
@@ -601,6 +649,7 @@ export const baseQuestions: string[] = activeBase.map((q) => q.text)
 export const questions: string[] = [
   ...baseQuestions,
   ...activeExpansion.map((q) => q.text),
+  ...activeCommunity.map((q) => q.text),
 ]
 
 /**
@@ -610,11 +659,20 @@ export const questions: string[] = [
 export const questionIdByIndex: string[] = [
   ...activeBase.map((q) => q.id),
   ...activeExpansion.map((q) => q.id),
+  ...activeCommunity.map((q) => q.id),
 ]
 
-/** Every question ever written, active or retired, by id. */
-export const ALL_BY_ID: ReadonlyMap<string, BaseEntry | Expansion> = new Map(
-  [...BASE_DECK, ...expansionQuestions].map((q) => [q.id, q]),
+/**
+ * The revision id for each index in `questions` — which exact wording was
+ * dealt. Telemetry records this alongside the question id.
+ */
+export const revisionIdByIndex: string[] = questions.map((text, i) =>
+  revisionIdFor(questionIdByIndex[i], text),
+)
+
+/** Every question ever written, active, experimental or retired, by id. */
+export const ALL_BY_ID: ReadonlyMap<string, BaseEntry | Expansion | CommunityEntry> = new Map(
+  [...BASE_DECK, ...expansionQuestions, ...communityQuestions].map((q) => [q.id, q]),
 )
 
 /**
@@ -673,10 +731,16 @@ export function packFor(category: Category): Pack {
 export const categoryByIndex: (Category | null)[] = [
   ...activeBase.map(() => null),
   ...activeExpansion.map((q) => q.category),
+  ...activeCommunity.map((q) => q.category),
 ]
 
-/** Indices of the original 114 — the pool when every expansion category is off. */
-export const basePool: number[] = baseQuestions.map((_, i) => i)
+/**
+ * Indices that play under the Base Questions switch — the pool a fresh
+ * session opens on. Ian's originals, plus any dealt community question
+ * without a category (there are none at launch, so today this is exactly the
+ * originals).
+ */
+export const basePool: number[] = categoryByIndex.flatMap((c, i) => (c === null ? [i] : []))
 
 /**
  * Provenance for each index in `questions` — `'original'` for Ian's 114,
@@ -687,4 +751,78 @@ export const basePool: number[] = baseQuestions.map((_, i) => i)
 export const sourceByIndex: Source[] = [
   ...activeBase.map((): Source => 'original'),
   ...activeExpansion.map((): Source => 'todd'),
+  ...activeCommunity.map((): Source => 'community'),
 ]
+
+/** Question or challenge, for each index in `questions`. Unmarked entries are questions. */
+export const kindByIndex: Kind[] = [
+  ...activeBase.map((): Kind => 'question'),
+  ...activeExpansion.map((q): Kind => q.kind ?? 'question'),
+  ...activeCommunity.map((q): Kind => q.kind ?? 'question'),
+]
+
+/* -------------------------------------------------------------- catalog --- */
+
+/** One question, as the telemetry catalog and editorial tools see it. */
+export type CatalogRecord = {
+  questionId: string
+  revisionId: string
+  text: string
+  origin: Source
+  category: Category | null
+  kind: Kind
+  status: ShippedStatus
+  /** Whether this build deals it (experimental depends on the flag). */
+  dealt: boolean
+  /** Why it was archived, when it was. */
+  archivedReason: string | null
+}
+
+/**
+ * Every question this build knows about — dealt or not, archived included —
+ * in the catalog's shape. `scripts/catalog-sql.ts` turns this into the SQL
+ * that registers revisions, statuses and tags in the database.
+ */
+export const CATALOG: readonly CatalogRecord[] = [
+  ...BASE_DECK.map((q): CatalogRecord => ({
+    questionId: q.id,
+    revisionId: revisionIdFor(q.id, q.text),
+    text: q.text,
+    origin: 'original',
+    category: null,
+    kind: 'question',
+    status: q.retired ? 'archived' : 'canon',
+    dealt: !q.retired,
+    archivedReason: q.retired ?? null,
+  })),
+  ...expansionQuestions.map((q): CatalogRecord => ({
+    questionId: q.id,
+    revisionId: revisionIdFor(q.id, q.text),
+    text: q.text,
+    origin: 'todd',
+    category: q.category,
+    kind: q.kind ?? 'question',
+    status: q.retired ? 'archived' : 'canon',
+    dealt: !q.retired,
+    archivedReason: q.retired ?? null,
+  })),
+  ...communityQuestions.map((q): CatalogRecord => ({
+    questionId: q.id,
+    revisionId: revisionIdFor(q.id, q.text),
+    text: q.text,
+    origin: 'community',
+    category: q.category,
+    kind: q.kind ?? 'question',
+    status: q.status,
+    dealt: isDealt(q.status, flags.experimentalQuestions),
+    archivedReason: null,
+  })),
+]
+
+/**
+ * Identifies the exact set of wordings this build can deal. Recorded on every
+ * play session, so any session's candidate set can be reconstructed later
+ * from the catalog alone — which is what makes offline evaluation of a future
+ * policy against today's logs possible.
+ */
+export const CATALOG_VERSION: string = sha256Hex([...revisionIdByIndex].sort().join('\n')).slice(0, 16)

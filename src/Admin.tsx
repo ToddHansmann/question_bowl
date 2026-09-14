@@ -19,6 +19,7 @@ import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { isDeviceExcluded, isTestMode, setDeviceExcluded, setTestMode } from './analytics'
 import { BASE_DECK, PACKS, baseQuestions, expansionQuestions } from './questions'
 import { getClient, supabaseConfigured } from './supabase'
+import { CatalogPanel, CommunityQuestions, DataHealth } from './admin/Foundation'
 import './admin.css'
 
 /* ------------------------------------------------------- deck counts --- */
@@ -707,8 +708,11 @@ export default function Admin() {
             <QuestionTable rows={metrics.byQuestion} metric="positive_pct" minVotes={0} />
           </section>
 
+          {client && <CommunityQuestions client={client} includeTest={includeTest} />}
+
           <section className="adm-section">
-            <h2>Suggestions</h2>
+            <details>
+              <summary className="adm-summary">Every raw submission ({metrics.suggestions.length})</summary>
             {metrics.suggestions.length === 0 ? (
               <p className="adm-note">None yet.</p>
             ) : (
@@ -725,7 +729,11 @@ export default function Admin() {
                 ))}
               </ul>
             )}
+            </details>
           </section>
+
+          {client && <CatalogPanel client={client} />}
+          {client && <DataHealth client={client} includeTest={includeTest} />}
         </>
       )}
     </Shell>
