@@ -6,6 +6,8 @@
 **Phase:** Production rollout is complete. **Catalog Sync has been run by
 the owner — every required task is done and verified end to end.** Nothing
 engineering-side is outstanding.
+**Release:** tagged [`v0.1.0-beta`](https://github.com/ToddHansmann/question_bowl/releases/tag/v0.1.0-beta)
+at commit `a5ca2b8` — Sip the Tea's first beta milestone.
 
 ---
 
@@ -22,6 +24,7 @@ engineering-side is outstanding.
 | **Catalog Sync — done.** | The owner signed into `/admin` and ran it. Verified directly in the database: `question_catalog` 436 rows — 114 `original` (113 canon + 1 archived) and 322 `todd` (321 canon + 1 archived); no `community`-origin questions yet, since none have gone through the accept-as-draft workflow. `question_revisions` 436, `question_lifecycle_events` 436, `tag_dimensions` 7, `tag_values` 28. `question_tag_assignments` is 0 by design — sync registers the tag *scheme*, not per-question tags; tagging the 436 questions individually is optional future polish, not a blocker (§6). |
 | **Recommendation telemetry — confirmed live and clean.** | Real (non-test) rows already exist end to end: `play_sessions` 4, `card_impressions` 11, `card_exits` 10 reported + 2 inferred, `impression_feedback` 1, `conversation_nominations` (in effect) 1. Both integrity checks in `admin_telemetry_health`'s logic are 0: no impression lacks a session, no draw lacks a probability. (Calling `admin_telemetry_health` directly from a raw DB connection returns all zeros regardless of `include_test` — that's the same `is_admin()`/JWT gap as Catalog Sync, not a real problem; replicate its query without the `is_admin()` filter to see real numbers, the way `admin_traffic` was verified.) |
 | **Tests at HEAD** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass (12 migrations, all applied to production now) · `npm run build`: succeeds. |
+| **Release** | Tagged [`v0.1.0-beta`](https://github.com/ToddHansmann/question_bowl/releases/tag/v0.1.0-beta) at commit `a5ca2b8` — the first beta milestone, covering everything in this table. Any work in a new session happens *after* this tag; don't confuse "at HEAD" with "at the release" once `main` moves further. |
 
 ---
 
