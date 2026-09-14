@@ -1,5 +1,7 @@
 # Sip the Tea
 
+[![Release](https://img.shields.io/github/v/release/ToddHansmann/question_bowl?include_prereleases&label=release)](https://github.com/ToddHansmann/question_bowl/releases/tag/v0.1.0-beta)
+
 One question, the whole screen. Made for a table of people answering out loud.
 
 Opens on a branded start screen; one tap on **Pour the first question** drops you
