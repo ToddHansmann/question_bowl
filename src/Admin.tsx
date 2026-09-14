@@ -19,7 +19,7 @@ import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { isDeviceExcluded, isTestMode, setDeviceExcluded, setTestMode } from './analytics'
 import { BASE_DECK, PACKS, baseQuestions, expansionQuestions } from './questions'
 import { getClient, supabaseConfigured } from './supabase'
-import { CatalogPanel, CommunityQuestions, DataHealth } from './admin/Foundation'
+import { CatalogPanel, CommunityQuestions, DataHealth, type DeckSummary } from './admin/Foundation'
 import './admin.css'
 
 /* ------------------------------------------------------- deck counts --- */
@@ -48,6 +48,17 @@ const totalFor = (packs: typeof PACKS): number =>
 
 const TOTAL_QUESTION_PACK_COUNT = totalFor(QUESTION_PACKS)
 const TOTAL_CHALLENGE_COUNT = totalFor(CHALLENGE_PACKS)
+
+/** Handed to `CatalogPanel`, which combines this with what the database has registered (see Foundation.tsx). */
+const DECK_SUMMARY: DeckSummary = {
+  baseCount: baseQuestions.length,
+  retiredBaseCount: RETIRED_BASE_COUNT,
+  questionPacks: QUESTION_PACKS,
+  challengePacks: CHALLENGE_PACKS,
+  activeCountByCategory: ACTIVE_COUNT_BY_CATEGORY,
+  totalQuestionPackCount: TOTAL_QUESTION_PACK_COUNT,
+  totalChallengeCount: TOTAL_CHALLENGE_COUNT,
+}
 
 /* ------------------------------------------------------------- shapes --- */
 
@@ -410,10 +421,16 @@ export default function Admin() {
   const shownEngagement = range === 'daily' ? daily.engagement : e
 
   const rated = metrics.byQuestion.filter((q) => n(q.total) >= minVotes)
+  // A "most/least liked" question must actually have a majority that way —
+  // top-8-by-percentage alone could include a 40% question if nothing else
+  // qualified, which isn't liked at all. Ties at exactly 50% belong to
+  // neither list.
   const mostLiked = [...rated]
+    .filter((q) => n(q.positive_pct) > 50)
     .sort((a, b) => n(b.positive_pct) - n(a.positive_pct) || n(b.total) - n(a.total))
     .slice(0, 8)
   const leastLiked = [...rated]
+    .filter((q) => n(q.positive_pct) < 50)
     .sort((a, b) => n(a.positive_pct) - n(b.positive_pct) || n(b.total) - n(a.total))
     .slice(0, 8)
   const mostPolarizing = [...rated]
@@ -509,6 +526,20 @@ export default function Admin() {
         </p>
       ) : (
         <>
+          {/*
+           * Ordered by how actionable each section is, not by how the data is
+           * fetched: is anything broken (Data health) → what needs a decision
+           * right now (Community questions) → what's registered and whether
+           * it needs a sync (Catalog) → how things are trending (Traffic,
+           * Engagement) → reference and drill-down (Ratings, Content
+           * performance, raw submissions).
+           */}
+          {client && <DataHealth client={client} includeTest={includeTest} />}
+
+          {client && <CommunityQuestions client={client} includeTest={includeTest} />}
+
+          {client && <CatalogPanel client={client} deck={DECK_SUMMARY} />}
+
           <section className="adm-section">
             <div className="adm-section__head">
               <h2>Traffic</h2>
@@ -517,6 +548,7 @@ export default function Admin() {
                   <button
                     type="button"
                     data-active={range === 'total'}
+                    aria-pressed={range === 'total'}
                     onClick={() => setRange('total')}
                   >
                     All time
@@ -524,6 +556,7 @@ export default function Admin() {
                   <button
                     type="button"
                     data-active={range === 'daily'}
+                    aria-pressed={range === 'daily'}
                     onClick={() => setRange('daily')}
                   >
                     Today
@@ -535,7 +568,7 @@ export default function Admin() {
             {range === 'daily' && dailyError && (
               <p className="adm-error">Couldn’t load today’s numbers: {dailyError}</p>
             )}
-            <div className="adm-tiles">
+            <div className="adm-tiles" aria-busy={range === 'daily' && dailyLoading}>
               <Tile
                 label="Unique visitors"
                 value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.unique_visitors)}
@@ -559,7 +592,7 @@ export default function Admin() {
 
           <section className="adm-section">
             <h2>Engagement</h2>
-            <div className="adm-tiles">
+            <div className="adm-tiles" aria-busy={range === 'daily' && dailyLoading}>
               <Tile
                 label="Total ratings"
                 value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.total_ratings)}
@@ -584,67 +617,6 @@ export default function Admin() {
           </section>
 
           <section className="adm-section">
-            <h2>Deck</h2>
-            <div className="adm-tiles">
-              <Tile
-                label="Base"
-                value={baseQuestions.length}
-                note={
-                  RETIRED_BASE_COUNT > 0
-                    ? `${RETIRED_BASE_COUNT} retired`
-                    : 'none retired'
-                }
-              />
-              <Tile
-                label="Question packs"
-                value={TOTAL_QUESTION_PACK_COUNT}
-                note={`across ${QUESTION_PACKS.length} categories`}
-              />
-              <Tile
-                label="Challenges"
-                value={TOTAL_CHALLENGE_COUNT}
-                note={`across ${CHALLENGE_PACKS.length} categories`}
-              />
-            </div>
-
-            <h3>Question packs</h3>
-            <table className="adm-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th className="num">Active questions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {QUESTION_PACKS.map((p) => (
-                  <tr key={p.category}>
-                    <td>{p.category}</td>
-                    <td className="num">{ACTIVE_COUNT_BY_CATEGORY.get(p.category) ?? 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <h3>Challenges</h3>
-            <table className="adm-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th className="num">Active challenges</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CHALLENGE_PACKS.map((p) => (
-                  <tr key={p.category}>
-                    <td>{p.category}</td>
-                    <td className="num">{ACTIVE_COUNT_BY_CATEGORY.get(p.category) ?? 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-
-          <section className="adm-section">
             <h2>Ratings by category</h2>
             {metrics.byCategory.length === 0 ? (
               <p className="adm-note">Nothing rated yet.</p>
@@ -652,11 +624,11 @@ export default function Admin() {
               <table className="adm-table">
                 <thead>
                   <tr>
-                    <th>Category</th>
-                    <th className="num">Up</th>
-                    <th className="num">Down</th>
-                    <th className="num">Total</th>
-                    <th className="num">Positive</th>
+                    <th scope="col">Category</th>
+                    <th scope="col" className="num">Up</th>
+                    <th scope="col" className="num">Down</th>
+                    <th scope="col" className="num">Total</th>
+                    <th scope="col" className="num">Positive</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -693,10 +665,22 @@ export default function Admin() {
             </div>
 
             <h3>Most liked</h3>
-            <ExpandableQuestionTable rows={mostLiked} metric="positive_pct" minVotes={minVotes} />
+            <p className="adm-note adm-note--tight">Rated questions with more thumbs up than down.</p>
+            <ExpandableQuestionTable
+              rows={mostLiked}
+              metric="positive_pct"
+              minVotes={minVotes}
+              emptyMessage={rated.length > 0 ? 'No question has a positive majority yet.' : undefined}
+            />
 
             <h3>Least liked</h3>
-            <ExpandableQuestionTable rows={leastLiked} metric="positive_pct" minVotes={minVotes} />
+            <p className="adm-note adm-note--tight">Rated questions with more thumbs down than up.</p>
+            <ExpandableQuestionTable
+              rows={leastLiked}
+              metric="positive_pct"
+              minVotes={minVotes}
+              emptyMessage={rated.length > 0 ? 'No question has a negative majority yet.' : undefined}
+            />
 
             <h3>Most polarizing</h3>
             <p className="adm-note adm-note--tight">
@@ -704,11 +688,11 @@ export default function Admin() {
             </p>
             <ExpandableQuestionTable rows={mostPolarizing} metric="polarization" minVotes={minVotes} />
 
-            <h3>Every rated question</h3>
-            <QuestionTable rows={metrics.byQuestion} metric="positive_pct" minVotes={0} />
+            <details className="adm-details">
+              <summary className="adm-summary">Every rated question ({metrics.byQuestion.length})</summary>
+              <QuestionTable rows={metrics.byQuestion} metric="positive_pct" minVotes={0} />
+            </details>
           </section>
-
-          {client && <CommunityQuestions client={client} includeTest={includeTest} />}
 
           <section className="adm-section">
             <details>
@@ -731,9 +715,6 @@ export default function Admin() {
             )}
             </details>
           </section>
-
-          {client && <CatalogPanel client={client} />}
-          {client && <DataHealth client={client} includeTest={includeTest} />}
         </>
       )}
     </Shell>
@@ -788,15 +769,25 @@ function ExpandableQuestionTable({
   rows,
   metric,
   minVotes,
+  emptyMessage,
 }: {
   rows: QuestionRow[]
   metric: 'positive_pct' | 'polarization'
   minVotes: number
+  /** Overrides the default "nothing rated" message — e.g. when rows were
+   *  filtered down to nothing by a majority requirement rather than by
+   *  there being no ratings at all. */
+  emptyMessage?: string
 }) {
   const [expanded, setExpanded] = useState(false)
   return (
     <>
-      <QuestionTable rows={expanded ? rows : rows.slice(0, 3)} metric={metric} minVotes={minVotes} />
+      <QuestionTable
+        rows={expanded ? rows : rows.slice(0, 3)}
+        metric={metric}
+        minVotes={minVotes}
+        emptyMessage={emptyMessage}
+      />
       {rows.length > 3 && (
         <button type="button" className="adm-expand" onClick={() => setExpanded((v) => !v)}>
           {expanded ? 'Show fewer' : `Show ${rows.length - 3} more`}
@@ -810,17 +801,18 @@ function QuestionTable({
   rows,
   metric,
   minVotes,
+  emptyMessage,
 }: {
   rows: QuestionRow[]
   metric: 'positive_pct' | 'polarization'
   minVotes: number
+  emptyMessage?: string
 }) {
   if (rows.length === 0) {
     return (
       <p className="adm-note">
-        {minVotes > 1
-          ? `No question has ${minVotes} ratings yet.`
-          : 'Nothing rated yet.'}
+        {emptyMessage ??
+          (minVotes > 1 ? `No question has ${minVotes} ratings yet.` : 'Nothing rated yet.')}
       </p>
     )
   }
@@ -829,11 +821,11 @@ function QuestionTable({
       <table className="adm-table">
         <thead>
           <tr>
-            <th>Question</th>
-            <th>Category</th>
-            <th className="num">Up</th>
-            <th className="num">Down</th>
-            <th className="num">{metric === 'polarization' ? 'Split' : 'Positive'}</th>
+            <th scope="col">Question</th>
+            <th scope="col">Category</th>
+            <th scope="col" className="num">Up</th>
+            <th scope="col" className="num">Down</th>
+            <th scope="col" className="num">{metric === 'polarization' ? 'Split' : 'Positive'}</th>
           </tr>
         </thead>
         <tbody>

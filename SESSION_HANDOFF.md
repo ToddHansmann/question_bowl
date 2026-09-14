@@ -1,193 +1,185 @@
-# Session handoff: recommendation foundation
+# Session handoff: recommendation foundation is live
 
-**Written:** 2026-09-13, end of session
+**Written:** 2026-09-14, end of session
 **For:** a brand-new Claude Code session with no memory of this work
 **Repo:** `C:\Users\toddh\OneDrive\Documents\Question Bowl\question_bowl` (Sip the Tea, live at sipthetea.app)
+**Phase:** Production rollout is complete. This file describes steady-state
+operation and the one remaining owner-gated step — read this, not any older
+handoff still lying around under a different name.
 
 ---
 
-## 1. Where things stand
+## 1. Where things stand — READ THIS FIRST
 
 | | |
 |---|---|
-| **Branch** | `feature/recommendation-foundation` (local only; never pushed) |
-| **Implementation commit** | `b4439464bb1dd3c65da62c8a1a3b39321a4904cd` |
-| **Handoff commit** | The commit directly on top of that one, containing only this file |
-| **Base** | `main` at `fc665b6` (= `origin/main`, unchanged) |
-| **Pushed / PR / merged** | No / No / No |
-| **Deployed to Vercel** | **No.** Production still runs `fc665b6`. |
-| **Production DB migrations** | **Not applied.** QB Production (`wxvynkalkjrtygcjjyxy`) still lists only its original 7 migrations. The owner explicitly said: *do not apply production migrations yet.* |
-| **Tests at commit** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass · `npm run build`: succeeds |
+| **Branch** | `main` |
+| **Merged** | `feature/recommendation-foundation` → `main`, via `--no-ff` merge commit (`3b530b0`), followed by an admin-dashboard UX pass. Both are on `main`; check `git log --oneline -5` for the exact current HEAD. |
+| **Pushed** | Yes, `origin/main` matches local `main` as of this session's close. |
+| **Deployed to Vercel** | **Yes.** This repo has continuous deployment — every push to `main` builds and deploys automatically (README.md). There is no separate manual "deploy" step; pushing `main` **is** deploying. |
+| **Production DB migrations** | **All 4 applied to QB Production** (`wxvynkalkjrtygcjjyxy`), in order, this session. 11 migrations total now (7 original + 4 new). Verified: `exit_actions` = 8, `lifecycle_transitions` = 6, `admin_telemetry_health()` runs, security/performance advisors show nothing new or blocking. |
+| **Telemetry** | **Confirmed flowing end-to-end on the live production site.** A real test session was played on `sipthetea.app/?qbtest=1` and every layer was verified directly in QB Production: `play_sessions`, `context_snapshots`, `card_impressions` (exact selection probabilities `1/113`, `1/112`), `card_exits`, `conversation_nominations`, `impression_feedback`, and the `research_impressions` / `research_nominations` / `research_sessions` views all resolved correctly against that real data — including one exit whose fallback-inferred behavior (ADR 0008) was exercised for real. Zero integrity problems (0 superseded exits, 0 orphaned impressions, 0 draws missing a probability) across all of QB Production. No runtime errors on the Vercel deployment. |
+| **Admin dashboard** | Reworked this session as an operational dashboard (see §3). Verified by `tsc -b`, a full `npm run build`, and the existing test suite — **not** visually exercised against a live sign-in, because that needs the owner's own `/admin` password (see §2). |
+| **Catalog Sync** | **Not yet run.** The one remaining step; needs the owner signed in at `/admin` (see §2). |
+| **Tests at HEAD** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass · `npm run build`: succeeds (needs `VITE_PRODUCTION_HOSTNAME` set locally; Vercel already has it). |
 
 Verify on resume:
-
 ```bash
 git branch --show-current
-```
-```bash
-git log --oneline -3
-```
-```bash
+git log --oneline -5
 npm test
-```
-```bash
 npm run test:db
 ```
+Also re-check (read-only) QB Production's migration list and Vercel's current
+production deployment/commit before assuming anything above is still
+true — this file describes state as of 2026-09-14.
 
 ---
 
-## 2. What this work is
+## 2. The one thing only the owner can do: Catalog Sync
 
-Sip the Tea's long-term goal is to become **the best recommendation engine
-for meaningful in-person conversations**, not the largest library of
-questions. This branch builds the permanent foundation for that **without
-changing how the game plays**. It has no machine learning and no
-recommendation algorithm beyond the existing shuffle.
+`/admin` → **Catalog** → **"Sync this build"** registers the ~430 questions,
+their wordings, statuses and tags with the database. It has never been run.
 
-The governing doctrine is **`docs/adr/0000-measures-conversations-not-engagement.md`**:
+**Why a Claude Code session can't do this:** signing in requires
+`signInWithPassword({ email, password })` — a real admin password. The
+underlying check, `is_admin()`, reads `auth.jwt() ->> 'email'`, which only a
+genuine authenticated session can satisfy; there is no service-role or raw-
+SQL shortcut that wouldn't also corrupt the audit trail these functions exist
+to keep (every catalog and lifecycle change records a real person's email as
+actor — ADR 0006). Don't attempt to work around this; ask the owner to run it
+themselves, or do it live with them watching.
 
-- the unit of value is a real conversation, not a card
-- optimize for meaningful conversations, never screen time
-- always measure against `UniformRandomPolicy`
-- telemetry exists to improve conversations
-- telemetry stays stable while policies change
-- question ids are permanent, and revisions never overwrite history
+**This does not block anything already working.** Telemetry has no foreign-
+key dependency on the catalog tables (ADR 0008) — proven this session by
+writing real telemetry rows before Sync had ever run. Catalog Sync unblocks:
+- the Catalog panel's "Registered in database" / "Tagged" tiles actually
+  reflecting reality (they'll show 0 until Sync runs at least once)
+- any future community-question tagging or lifecycle work
+- Data Health's tiles reflecting the real, live-site numbers (right now they
+  will show the one test session recorded above, once viewed through
+  `/admin` rather than direct SQL)
 
----
-
-## 3. What was completed
-
-### Player-visible (the only gameplay-adjacent changes)
-- Home screen: *"Discover what people are really curious about."* beneath *"Answer out loud."*
-- A one-time welcome before a device's first game (copy in `src/onboarding.ts`), persisted in localStorage. Reset with `?qbonboarding=reset` or from /admin.
-- A ☆ in the top-left of the deck: **one "best conversation" nomination per session**. Nominating another card replaces it; tapping again clears it.
-- An **About Sip the Tea** page in the menu.
-- No user-facing copy mentions algorithms, telemetry, analytics or AI.
-- Dealing, swipes, packs, consent gates, ratings and suggestions are unchanged.
-
-### Architecture
-- **Question identity** (`src/catalog/revision.ts`): permanent ids;
-  `revisionId = questionId@sha256(NFC(text))[0:12]`, computed in TS and
-  enforced by a SQL CHECK. `CATALOG`, `CATALOG_VERSION` and
-  `revisionIdByIndex` are in `src/questions.ts`.
-- **Recommendation contracts** (`src/recommendation/types.ts`):
-  `RecommendationPolicy`, `CandidateGenerator`, `QuestionRanker`,
-  `ConversationArc`, `ContextSnapshot`, `PolicyEvaluation`. The shuffle is now
-  `UniformRandomPolicy` (`uniformRandom.ts`), which logs the exact selection
-  probability (`1/candidateCount`). `deck.ts` stores a `DrawRecord` per card.
-- **Telemetry** (`src/telemetry/`): sessions, context snapshots, impressions
-  (draw / revisit / redisplay), visibility (hidden / visible / obscured),
-  exits (next, skip, back, reroll, background, session_abandoned,
-  pool_emptied, superseded), dwell in ms that pauses while hidden, thumbs, and
-  nominations. There's a pure `SessionTracker`, a `DwellClock`, an offline
-  `Outbox` (localStorage, retry, 409 treated as delivered), and a
-  `useCardTelemetry` hook that `App.tsx` calls.
-- **Tags** (`src/catalog/tags.ts`): 7 manual dimensions (depth, spice,
-  energy, format, familiarity_required, group_size_fit, risk).
-  `questionTags.ts` is **intentionally empty**; tags are written by people only.
-- **Community lifecycle** (`src/catalog/lifecycle.ts`): Draft → Experimental
-  → Canon → Archived, editorial only. Drafts live in the DB; experimental and
-  canon ship via `communityQuestions` in `questions.ts`.
-- **Feature flags** (`src/flags.ts`): on by default are `telemetry`,
-  `telemetryOutbox`, `bestConversation` and `onboarding`; off by default are
-  `experimentalQuestions`, `skipGesture` and `telemetryDebug`. Override per
-  device with `?qbflags=name,-name`, or per build with `VITE_FLAGS`.
-- **Admin** (`src/admin/Foundation.tsx`), three new /admin panels:
-  **Community questions** (accept, decline, duplicate, revise, transition,
-  copy the `questions.ts` line), **Catalog** ("Sync this build"), and
-  **Data health**.
-
-### Database (`supabase/migrations/`)
-- **7 existing migrations**, recorded verbatim from production. **Already
-  applied in prod. Never re-apply.**
-- **4 new migrations, NOT applied:**
-  1. `20260913120000_question_catalog_lifecycle_and_tags.sql`
-  2. `20260913120100_play_telemetry.sql`
-  3. `20260913120200_editorial_workflow.sql`
-  4. `20260913120300_research_views.sql`
-- The only change to an existing object: the `question_ratings.source` CHECK
-  now also allows `'community'`.
-- RLS on everything: the app can only INSERT telemetry; admins read. Event
-  tables are append-only by trigger. Views use `security_invoker`.
-
-### Tests
-- `test/catalog.test.ts`, `recommendation.test.ts` and `telemetry.test.ts`
-  run via `npm test` (`test/all.ts`).
-- `test/db.test.ts` runs via `npm run test:db`. It replays all 11 migrations
-  on **PGlite** (in-process Postgres 18) with Supabase-like roles and grants,
-  and tests RLS, the lifecycle, catalog sync, telemetry inserts and views. It
-  caught and fixed one real bug in catalog sync.
-
-### Docs
-`docs/strategy.md` (living strategy + decision log + open questions Q1–Q8) ·
-`docs/roadmap.md` · `docs/architecture/recommendation.md` (selection
-probabilities, IPS, permanent baseline, fair evaluation) ·
-`docs/telemetry-spec.md` · `docs/schema.md` · `docs/implementation.md` ·
-`docs/migration-notes.md` · `docs/adr/0000–0009`.
+**To do it:** sign in at `sipthetea.app/admin`, go to **Catalog**, click
+**Sync this build**. Expect roughly 430 questions, 430 wordings and 430
+statuses added, nothing skipped.
 
 ---
 
-## 4. What has NOT been done
+## 3. This session's second half: the admin dashboard as an operational tool
 
-- ❌ Production migrations applied
-- ❌ Pushed, PR opened, or merged
-- ❌ Deployed
-- ❌ Catalog synced to the database (/admin → Catalog → Sync this build)
-- ❌ Migrations validated on real Supabase (only on PGlite)
-- ❌ /admin panels exercised against live data (no local credentials)
-- ❌ Any question tagged
-- ❌ Any rule-based or learned policy (intentionally out of scope)
+The owner asked for the admin dashboard to be reviewed and improved as an
+*operational dashboard for managing Sip the Tea*, not as cosmetic polish.
+Changes, all in `src/Admin.tsx`, `src/admin/Foundation.tsx`, `src/admin.css`:
 
----
+- **Deck and Catalog merged** into one "Catalog" section (`CatalogPanel` in
+  `Foundation.tsx` now takes a `deck: DeckSummary` prop built once in
+  `Admin.tsx`). One header, one set of tiles (Base, Question packs,
+  Challenges, Registered in database, Community shipped, Tagged), the
+  question-pack/challenge breakdown tables, and the Sync button all live
+  together — same information, one section instead of two.
+- **"Most liked" and "Least liked" now require an actual majority.**
+  Previously they were just "top 8 by percentage among rated questions,"
+  which could include a 40%-positive question in "Most liked" if nothing
+  else qualified. Now `mostLiked` filters to `positive_pct > 50` and
+  `leastLiked` to `positive_pct < 50` before ranking; a 50/50 split belongs to
+  neither. Each gets its own empty-state message ("No question has a
+  positive/negative majority yet.") distinct from "nothing rated at all."
+  The underlying `admin_ratings_by_question` RPC was already computing
+  `positive_pct` correctly — this was a client-side filtering bug, not a
+  database one; nothing in `supabase/migrations/` changed.
+- **"Every rated question" collapses by default**, in a `<details>` matching
+  "Every raw submission"'s existing pattern, with a count in the summary.
+- **Reordered top-to-bottom by how actionable each section is**, not by
+  fetch order: **Data health** (is anything broken) → **Community questions**
+  (what needs a decision right now) → **Catalog** (registration status + the
+  occasional Sync) → **Traffic** → **Engagement** → **Ratings by category** →
+  **Content performance** → **Every raw submission** (collapsed, at the very
+  bottom). Data Health and Community Questions used to be at the bottom of
+  the page; they're now the first two things anyone sees.
+- **Spacing**: `.adm-section__head` now carries its own `margin-bottom`
+  (14px) uniformly, and `.adm-note--tight`'s old `-4px` top-margin squeeze is
+  gone — this gives the Catalog "Sync this build" button and the Community
+  Questions filter toggle the same breathing room the Traffic "All time /
+  Today" toggle already had, by making that rhythm the one rule every section
+  header follows rather than a special case.
+- **Accessibility**: `aria-pressed` on every toggle-style button (All
+  time/Today, Needs attention/Everything), `scope="col"` on every table
+  header, `aria-busy` on the Traffic/Engagement tiles while "Today" is
+  loading, and a focus ring on the new `<details>` triggers.
+- **No behavior changed** beyond the Most/Least liked filtering fix above —
+  every number still comes from the same RPCs, no migration was touched,
+  nothing a player sees changed.
 
-## 5. Recommended review order
-
-1. **`docs/adr/0000-measures-conversations-not-engagement.md`**: the doctrine. Everything else should serve it.
-2. **`docs/strategy.md`**: vision, principles, open questions Q1–Q8.
-3. **`docs/adr/README.md` → ADRs 0001–0009**, especially 0002 (revisions), 0004 (baseline), 0006 (lifecycle), 0008 (outbox, no FKs).
-4. **`docs/architecture/recommendation.md`**: the selection probability and evaluation reasoning.
-5. **`docs/telemetry-spec.md`**: exactly what is recorded; confirm it matches your privacy expectations.
-6. **Player-facing code:** `src/App.tsx` (diff against `main`), `src/onboarding.ts`, the About copy, `src/styles.css`. Confirm there are no gameplay changes beyond the welcome, star, About and home line.
-7. **Deck and policy:** `src/deck.ts`, `src/recommendation/uniformRandom.ts`, `src/recommendation/types.ts`.
-8. **Telemetry code:** `src/telemetry/tracker.ts`, `dwell.ts`, `outbox.ts`, `useCardTelemetry.ts`.
-9. **Migrations:** the 4 new SQL files, then `docs/schema.md`.
-10. **Admin:** `src/admin/Foundation.tsx`.
-11. **Tests:** `test/db.test.ts` first (it shows the database behavior end to end), then the unit suites.
-12. **`docs/migration-notes.md`**: deploy order and rollback, read last, just before deciding to ship.
-
-Quick look at everything in a browser (dev never writes to Supabase):
-```
-npm run dev  →  http://localhost:5173/?qbflags=telemetryDebug&qbonboarding=reset
-```
-Then inspect `window.__sttTelemetry` in the console.
-
----
-
-## 6. Known risks and open questions
-
-1. Migrations are proven on PGlite (PG18), not on Supabase (PG17 + real auth). Validate on a Supabase branch before production.
-2. Deploying the app before the migrations drops telemetry rows (404s are not retried).
-3. Existing players will see the welcome once.
-4. iOS often kills backgrounded pages silently, so many exits will be *inferred* (`research_impressions.exit_source`).
-5. Two tabs share one outbox storage key; rare row loss is possible.
-6. Append-only triggers must be disabled deliberately to remove abusive submitted text (procedure in `docs/migration-notes.md`).
-7. Pre-existing quirk kept: the first card of a session can come round once more in the first pass (strategy Q6).
-8. The player bundle is about 7.6 KB larger gzipped.
-9. Undecided (strategy Q1–Q8): room-read friction, holdout size, outcome definition, AI-drafted questions, persistent groups, the first-card quirk, a server read for experimental questions, contributor credit.
-
----
-
-## 7. Hard rules for the next session
-
-- **Do not apply production migrations** unless the owner explicitly says so in that session.
-- **Do not push, open a PR, merge, or deploy** unless explicitly asked.
-- Never change a question id; never change what a telemetry field means; never store a derived score; never auto-promote content; never generate tags.
-- The Supabase connector should point at **QB Production** (`wxvynkalkjrtygcjjyxy`). If it lists "Dado Production" instead, that is the wrong project; stop and tell the owner.
+**Verified:** `tsc -b` clean, `npm run build` succeeds (with
+`VITE_PRODUCTION_HOSTNAME` set), `npm test` and `npm run test:db` both still
+fully green (no admin-dashboard test coverage exists; nothing here is
+exercised by the test suite either way).
+**Not verified:** actually signing into `/admin` and looking at it — that
+needs the owner's password, which this session neither has nor should ever
+ask for. **Take a look once you're in there**, especially the new tile count
+in Catalog before and after running Sync (§2).
 
 ---
 
-## 8. First prompt to give Claude tomorrow
+## 4. What was completed in the recommendation-foundation phase (for context)
+
+- Question identity and revisions, recommendation policy contracts, play
+  telemetry, tags, the community lifecycle, feature flags, three /admin
+  panels — architecture reviewed against ADR-000 and ADR 0001–0009, approved,
+  merged, migrated, and now proven live (see §1).
+- Doctrine and strategy wording fixes from that review: ADR-000 principle 4
+  (telemetry disclosure belongs in a Privacy Policy, not gameplay copy),
+  `docs/strategy.md` (device-vs-group return caveat, derived-score wording
+  aligned with ADR-000, Q1/Q2/Q6/Q7 resolved), `docs/telemetry-spec.md` (the
+  iOS Safari storage-clearing caveat on `device_id`).
+- Player-visible: the home line, the one-time welcome, the best-conversation
+  star, the About page. Nothing about dealing, swiping, packs, consent,
+  ratings or suggestions changed.
+
+Full detail on the architecture itself: `docs/adr/0000-…` through `0009-…`,
+`docs/architecture/recommendation.md`, `docs/strategy.md`,
+`docs/telemetry-spec.md`, `docs/schema.md`, `docs/migration-notes.md`.
+
+---
+
+## 5. Known risks (unchanged from rollout, still true)
+
+1. iOS backgrounds pages silently, so many exits are *inferred* rather than
+   *reported* — confirmed working as designed during this session's live
+   test, not a bug.
+2. Two tabs share one outbox storage key; rare row loss is possible (ADR
+   0008, accepted).
+3. Removing abusive submitted text requires deliberately disabling an
+   append-only trigger — procedure in `docs/migration-notes.md`, never a
+   plain DELETE.
+4. `docs/strategy.md` Q3 (the outcome definition), Q4 (AI-drafted questions),
+   Q5 (persistent groups) and Q8 (contributor credit) remain genuinely open —
+   none block operation.
+5. 7 unindexed foreign keys and 21 currently-unused indexes flagged by the
+   Supabase performance advisor — all on low-cardinality lookup tables or
+   brand-new empty ones; cosmetic at current scale, not urgent.
+
+---
+
+## 6. Hard rules for the next session
+
+- **Never sign into `/admin` or ask the owner for the admin password.** Ask
+  them to run Catalog Sync themselves, or do it with them watching.
+- Any push to `main` deploys automatically — treat "push main" and "deploy"
+  as the same action; don't push without the go-ahead you'd want before a
+  deploy.
+- Never change a question id; never change what a telemetry field means;
+  never store a derived score; never auto-promote content; never generate
+  tags.
+- The Supabase connector should point at **QB Production**
+  (`wxvynkalkjrtygcjjyxy`). If it lists "Dado Production" instead, stop and
+  tell the owner.
+
+---
+
+## 7. First prompt for the next session
 
 Copy and paste:
 
-> Read `SESSION_HANDOFF.md` at the repo root, then `docs/adr/0000-measures-conversations-not-engagement.md` and `docs/strategy.md`. Confirm we're on branch `feature/recommendation-foundation` with the implementation commit `b4439464bb1dd3c65da62c8a1a3b39321a4904cd`, run `npm test` and `npm run test:db`, and confirm (read-only) that QB Production still has only its original 7 migrations. Do not apply migrations, push, open a PR, or deploy. Then walk me through the review in the order listed in section 5 of the handoff, one step at a time, pausing after each step for my questions and decisions. Record any decisions I make in the decision log in `docs/strategy.md`.
+> Read `SESSION_HANDOFF.md` at the repo root. Confirm `main`'s current HEAD, run `npm test` and `npm run test:db`, and confirm (read-only) QB Production's current migration list and Vercel's current production deployment/commit — don't assume this file is still accurate on either point. Then [describe what you want done next — e.g. "walk me through running Catalog Sync" or "let's tag the first batch of questions" or a new feature].

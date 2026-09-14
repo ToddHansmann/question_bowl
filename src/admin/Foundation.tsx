@@ -171,10 +171,20 @@ export function CommunityQuestions({ client, includeTest }: { client: SupabaseCl
       <div className="adm-section__head">
         <h2>Community questions</h2>
         <div className="adm-range" role="group" aria-label="Filter">
-          <button type="button" data-active={filter === 'open'} onClick={() => setFilter('open')}>
+          <button
+            type="button"
+            data-active={filter === 'open'}
+            aria-pressed={filter === 'open'}
+            onClick={() => setFilter('open')}
+          >
             Needs attention
           </button>
-          <button type="button" data-active={filter === 'all'} onClick={() => setFilter('all')}>
+          <button
+            type="button"
+            data-active={filter === 'all'}
+            aria-pressed={filter === 'all'}
+            onClick={() => setFilter('all')}
+          >
             Everything
           </button>
         </div>
@@ -267,7 +277,25 @@ type SyncResult = {
   skipped: string[]
 }
 
-export function CatalogPanel({ client }: { client: SupabaseClient }) {
+/**
+ * What "Catalog" needs from `questions.ts` about the deck's packs — computed
+ * once in Admin.tsx (which already builds these constants) and handed down,
+ * rather than recomputed here. Deck and Catalog used to be two sections
+ * describing the same content from two angles (what ships vs. what the
+ * database has registered for it); combined, this is the single "how many
+ * questions exist and are they registered" view.
+ */
+export type DeckSummary = {
+  baseCount: number
+  retiredBaseCount: number
+  questionPacks: readonly { category: string }[]
+  challengePacks: readonly { category: string }[]
+  activeCountByCategory: ReadonlyMap<string, number>
+  totalQuestionPackCount: number
+  totalChallengeCount: number
+}
+
+export function CatalogPanel({ client, deck }: { client: SupabaseClient; deck: DeckSummary }) {
   const [result, setResult] = useState<SyncResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
@@ -300,11 +328,31 @@ export function CatalogPanel({ client }: { client: SupabaseClient }) {
         </button>
       </div>
       <p className="adm-note adm-note--tight">
-        Registers every question, wording and tag in this build with the database, and records retirements made in
-        questions.ts. Safe to run any time; run it after every deploy that changes questions.
+        What ships in this build, and what the database has registered for it. <strong>Sync this build</strong>{' '}
+        records every question, wording and tag, and any retirement made in questions.ts — safe to run any time; run
+        it after every deploy that changes questions.
       </p>
       <div className="adm-tiles">
-        <Tile label="Questions in this build" value={CATALOG.length} note={`${CATALOG.filter((c) => c.dealt).length} dealt`} />
+        <Tile
+          label="Base"
+          value={deck.baseCount}
+          note={deck.retiredBaseCount > 0 ? `${deck.retiredBaseCount} retired` : 'none retired'}
+        />
+        <Tile
+          label="Question packs"
+          value={deck.totalQuestionPackCount}
+          note={`across ${deck.questionPacks.length} categories`}
+        />
+        <Tile
+          label="Challenges"
+          value={deck.totalChallengeCount}
+          note={`across ${deck.challengePacks.length} categories`}
+        />
+        <Tile
+          label="Registered in database"
+          value={CATALOG.length}
+          note={`${CATALOG.filter((c) => c.dealt).length} dealt`}
+        />
         <Tile label="Community shipped" value={communityQuestions.length} />
         <Tile label="Tagged" value={tagged} note={`${fullyTagged} on every dimension`} />
       </div>
@@ -337,6 +385,42 @@ export function CatalogPanel({ client }: { client: SupabaseClient }) {
           )}
         </>
       )}
+
+      <h3>Question packs</h3>
+      <table className="adm-table">
+        <thead>
+          <tr>
+            <th scope="col">Category</th>
+            <th scope="col" className="num">Active questions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deck.questionPacks.map((p) => (
+            <tr key={p.category}>
+              <td>{p.category}</td>
+              <td className="num">{deck.activeCountByCategory.get(p.category) ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3>Challenges</h3>
+      <table className="adm-table">
+        <thead>
+          <tr>
+            <th scope="col">Category</th>
+            <th scope="col" className="num">Active challenges</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deck.challengePacks.map((p) => (
+            <tr key={p.category}>
+              <td>{p.category}</td>
+              <td className="num">{deck.activeCountByCategory.get(p.category) ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   )
 }
