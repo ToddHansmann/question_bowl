@@ -13,7 +13,7 @@ import {
   type Pack,
 } from './questions'
 import { back, forward, initialDeck, makeBag, type Deck, type Pool } from './deck'
-import { SESSION_COMPLETE_AT, isTestMode, setTestMode, trackOnce } from './analytics'
+import { SESSION_COMPLETE_AT, trackOnce } from './analytics'
 import { flags } from './flags'
 import {
   ONBOARDING_CLOSER,
@@ -98,14 +98,6 @@ export default function App() {
   )
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState<'categories' | 'suggest' | 'consent' | 'about'>('categories')
-  // Lets someone testing on their own device (an admin, a QA pass, an iOS
-  // Home Screen install — none of which can reach /admin's own toggle, since
-  // that lives behind sign-in and a Home Screen install has no address bar to
-  // carry a `?qbtest=` link either) mark this exact browser storage as a
-  // tester from inside the game itself. Same flag `/admin` already sets on
-  // sign-in (`isTestMode`/`setTestMode` in analytics.ts); this is just a
-  // second door into it.
-  const [thisDeviceIsTest, setThisDeviceIsTest] = useState(() => isTestMode())
 
   // A gated pack (Sex, Dark Room) is listed openly, same as any other, and
   // still can't be switched on without everyone agreeing first. This state is
@@ -265,13 +257,6 @@ export default function App() {
       setOnboarding(false)
       setStarted(true)
     }, LANDING_MS)
-  }
-
-  /** Flips whether this browser's own storage counts as a tester's. See the state above. */
-  function toggleTestDevice() {
-    const next = !thisDeviceIsTest
-    setTestMode(next)
-    setThisDeviceIsTest(next)
   }
 
   /** Marks (or unmarks) the card on screen as tonight's best conversation. One per session. */
@@ -948,16 +933,6 @@ export default function App() {
                     it. That’s how the game grows.
                   </p>
                   <p className="menu-about__closer">Thanks for pulling up a chair.</p>
-                  <div className="menu-about__tester">
-                    <p className="menu-about__tester-note">
-                      {thisDeviceIsTest
-                        ? 'This device is marked as a tester — its plays don’t count in the real numbers.'
-                        : 'Testing the app on your own device?'}
-                    </p>
-                    <button type="button" className="menu-about__tester-btn" onClick={toggleTestDevice}>
-                      {thisDeviceIsTest ? 'Unmark this device' : 'Mark this device as a tester'}
-                    </button>
-                  </div>
                 </div>
               </>
             ) : menuView === 'consent' && consentPack ? (

@@ -1,11 +1,12 @@
-# Session handoff: recommendation foundation is live and operational
+# Session handoff: recommendation foundation is live; one data fix pending
 
 **Written:** 2026-09-14, end of session
 **For:** a brand-new Claude Code session with no memory of this work
 **Repo:** `C:\Users\toddh\OneDrive\Documents\Question Bowl\question_bowl` (Sip the Tea, live at sipthetea.app)
-**Phase:** Production rollout is complete, admin operations are cleaned up.
-This file describes steady-state operation — read this, not any older
-handoff still lying around under a different name.
+**Phase:** Production rollout is complete. One data-quality fix is fully
+diagnosed and specified but **not yet applied** — it needs a permission this
+session didn't have. Read this file, not any older handoff under a
+different name.
 
 ---
 
@@ -14,155 +15,152 @@ handoff still lying around under a different name.
 | | |
 |---|---|
 | **Branch** | `main` |
-| **Pushed** | Yes, `origin/main` matches local `main` as of this session's close. Run `git log --oneline -5` to see the exact current HEAD — don't trust a commit sha written into this file to still be current. |
-| **Deployed to Vercel** | **Yes.** This repo has continuous deployment — every push to `main` builds and deploys automatically (README.md). There is no separate manual "deploy" step; pushing `main` **is** deploying. |
-| **Production DB migrations** | All 4 recommendation-foundation migrations applied to QB Production (`wxvynkalkjrtygcjjyxy`). 11 total (7 original + 4 new). |
-| **Telemetry** | Confirmed flowing end-to-end on the live site in an earlier session (real test session played, every table and view checked directly in production). |
-| **Admin dashboard** | Reworked twice this project: once into an actionability-ordered operational dashboard, and again this session to fix a real analytics-pollution bug and redesign Content performance as expandable count cards. See §2 and §3. |
-| **A device-marking control now exists in the game itself** | `/admin`'s "Exclude this device" toggle can only be reached from a Safari tab, which is a different storage partition than an iOS "Add to Home Screen" install of the same site — so an admin's own installed icon could never be marked as a tester before this session. The hamburger menu → **About Sip the Tea** now has a quiet "Mark this device as a tester" control that works from wherever it's tapped, home-screen icon included. See §2. |
-| **Tests at HEAD** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass · `npm run build`: succeeds (needs `VITE_PRODUCTION_HOSTNAME` set locally; Vercel already has it). No React component tests exist in this repo (never have) — the admin dashboard changes were verified by `tsc -b`, a full build, and manual browser verification, not by an automated UI test. |
+| **Pushed** | Yes, `origin/main` matches local `main` as of this session's close. Run `git log --oneline -5` — don't trust a sha in this file to still be current. |
+| **Deployed to Vercel** | **Yes.** Every push to `main` builds and deploys automatically. Pushing `main` **is** deploying. |
+| **Production DB migrations** | All 4 recommendation-foundation migrations applied. 11 total. |
+| **Telemetry** | Confirmed flowing end-to-end. |
+| **⚠️ Two devices are still polluting real production KPIs** | See §2. Root cause diagnosed, exact fix specified, **blocked on a permission this session didn't have** — needs either the owner running two `UPDATE` statements themselves, or a future session with write access to Supabase data (not just schema). |
+| **Admin dashboard** | Content performance is cards; a device-status badge ("This device: Production / Test / Excluded") now sits in the `/admin` header bar. See §3. |
+| **The public "mark this device as a tester" control from last session has been removed.** Tester-device management is `/admin`-only again, by the owner's explicit direction. This reopens the original reachability gap for an iOS Home Screen install — see §3's note on that tradeoff. |
+| **Tests at HEAD** | `npm test`: 34 deck + 58 unit pass · `npm run test:db`: 22 pass · `npm run build`: succeeds (needs `VITE_PRODUCTION_HOSTNAME` set locally). |
 
-Verify on resume:
-```bash
-git branch --show-current
-git log --oneline -5
-npm test
-npm run test:db
+---
+
+## 2. Analytics pollution: diagnosis is done, the fix is not applied
+
+### Confirmed root cause (unchanged from last session, re-verified)
+
+iOS treats a Home Screen install as a storage context separate from Safari
+for the same origin. `/admin`'s "Exclude this device" checkbox and the
+`?qbtest=` URL param both write to `localStorage`, and both can only
+realistically be reached from a Safari tab — a Home Screen install has no
+address bar. `public/manifest.webmanifest` also declares a fixed
+`"start_url": "/"`, so re-adding the icon from a URL carrying `?qbtest=1`
+doesn't help on a spec-compliant Safari either. **The exclusion mechanism
+itself works correctly wherever it's reachable** — verified again this
+session that `is_test` filtering is consistent across `admin_traffic`,
+`admin_engagement`, `admin_telemetry_health`, and the telemetry pipeline.
+The bug has only ever been reachability from a standalone install, not the
+filtering logic.
+
+### Two specific devices, identified with quantified evidence
+
+**Device A — `6c1bf8c6-87e0-4834-ac2f-f1d7f2da1b15`.** Its one
+`play_sessions` row (2026-09-14) records `display_mode: "standalone"` —
+direct technical proof it was played from an installed Home Screen app,
+not an inference. Active across 4 separate days spanning the whole beta
+(Sep 10, 11, 13, 14); 31 `analytics_events`, 6× the next-most-active real
+visitor (5). Contributes **10 of 35** real `sessions_started` and **2 of
+14** real `sessions_completed`.
+
+**Device B — `d6e9a640-fcfa-4f74-9408-da351d27b281`.** Missed in the
+previous pass — actually the single most active "real" visitor in the
+dataset: 55 `analytics_events`, all within one 23-hour window on launch
+day (2026-09-09–10, before recommendation-foundation telemetry existed, so
+no `display_mode` evidence is possible for it either way). **21 separate
+`session_started` events in 23 hours** — restarting the app ~21 times in a
+day is a reload-and-check pattern, not how a real player behaves — and
+**zero ratings ever**, unusual for someone who opened the app 21 times if
+they were actually enjoying it (9 of the other 88 real visitors rated
+something). Contributes **21 of 35** real `sessions_started` (60%) and
+**11 of 14** real `sessions_completed` (78.6%).
+
+Neither identification is certain — this architecture deliberately infers
+nothing about identity from behavior — but both are extreme outliers
+separated from the rest of the real-visitor distribution by a wide margin
+(55, 31, then 5, 4, 2, 1…), and Device A has a hard technical fact
+corroborating it. No other visitor was touched or considered; everyone
+else's numbers are ordinary.
+
+**Combined impact if reclassified:** real `sessions_started` 35 → **4**,
+real `sessions_completed` 14 → **1**, real unique visitors 89 → **87**,
+real ratings 9 → **8**. This is a large correction — most of what the
+dashboard currently shows as "beta activity" is these two devices'
+testing, not real players.
+
+### What was and wasn't done
+
+`analytics_events` and `question_ratings` have **no** append-only trigger
+— an `UPDATE` is architecturally safe there. `play_sessions`,
+`context_snapshots`, `card_impressions`, `card_visibility_events`, and
+`card_exits` **do** have append-only triggers that reject any update or
+delete outright, even for a superuser, specifically so telemetry history
+can't be quietly rewritten — confirmed directly against
+`information_schema.triggers`. The only documented exception to that
+protection (`docs/migration-notes.md`, "Operational notes") is removing
+genuinely abusive submitted text — not a routine reclassification like
+this one. **I chose not to bypass that protection.** Practically the cost
+is small: Device A has only 1 `play_sessions` row and single-digit
+`card_impressions`/`card_exits`, which won't visibly skew Data Health at
+current volume.
+
+**Attempting the two safe `UPDATE`s failed** — the execute_sql call was
+blocked by this session's own permission system ("Modify Shared
+Resources"), which is a guardrail on this Claude Code session, not a
+database or architecture restriction. **Nothing was changed.** The exact
+statements, ready to run (Supabase SQL editor, or `execute_sql` in a
+session with the right permission):
+
+```sql
+update public.analytics_events
+set is_test = true
+where visitor_id in ('6c1bf8c6-87e0-4834-ac2f-f1d7f2da1b15', 'd6e9a640-fcfa-4f74-9408-da351d27b281')
+  and is_test = false;
+
+update public.question_ratings
+set is_test = true
+where visitor_id = '6c1bf8c6-87e0-4834-ac2f-f1d7f2da1b15'
+  and is_test = false;
 ```
-Also re-check (read-only) QB Production's migration list and Vercel's current
-production deployment/commit before assuming anything above is still
-true — this file describes state as of 2026-09-14.
+
+After running these, re-check `admin_traffic`/`admin_engagement` (or the
+equivalent direct-SQL counts above) to confirm the real numbers land at
+the quantified values above, and note the change in
+`docs/migration-notes.md`'s change log, matching the project's existing
+practice for this kind of correction.
 
 ---
 
-## 2. Analytics pollution: root cause, fix, and one unresolved question
+## 3. Admin dashboard and About page changes
 
-### What was wrong
+- **Removed** the "Mark this device as a tester" control from the
+  player-facing About page (was added last session, in `src/App.tsx`).
+  The owner's explicit direction: tester-device management should live
+  only in `/admin`, behind sign-in — not in the game itself, even quietly.
+  **Known tradeoff, accepted by the owner:** this reopens the original
+  problem for an iOS Home Screen install — `/admin` is unreachable from a
+  standalone context (no address bar, can't sign in), so a device in that
+  state still can't mark itself. The forward-looking answer, if this comes
+  up again, is periodic detection-and-reclassification (§2's method) rather
+  than a prevention mechanism in the player bundle.
+- **Added** a device-status badge to `/admin`'s header bar: "This device:
+  Production / Test / Excluded," color-coded, reflecting the *current
+  admin browser's* own recording state (`isTestMode()` /
+  `isDeviceExcluded()`, both already existing mechanisms — nothing new
+  underneath, just made visible). Sign-in already auto-enables test mode
+  for the admin's own browser; this badge is the "clearly indicate" the
+  owner asked for.
+- Content performance cards, the Most/Least-liked majority fix, and the
+  Community Questions wording fix from last session are unchanged and
+  still in place — confirmed, not re-touched, since they already satisfy
+  what was re-asked this round.
 
-The owner reported that their own device kept showing up in production
-metrics (Unique visitors, Sessions started) despite "Exclude this device
-from analytics" being on, and asked whether an iOS Safari Home Screen
-install was involved.
-
-**Confirmed root cause:** iOS treats a page added to the Home Screen
-(`display: standalone` in `public/manifest.webmanifest`) as a *separate
-browsing context with its own storage*, isolated from Safari's own
-storage for the same origin. Every existing way to mark a device as
-excluded or as a tester — the `/admin` checkbox, and the `?qbtest=` URL
-param — writes to `localStorage`, and both can only realistically be
-reached from a Safari tab (the `/admin` dashboard needs sign-in; a
-`?qbtest=` link needs an address bar to type or paste into, which a
-standalone install doesn't have). Worse, `manifest.webmanifest` declares
-a fixed `"start_url": "/"`, so even re-adding the Home Screen icon from a
-URL carrying `?qbtest=1` doesn't help on a modern, spec-compliant Safari —
-the reinstalled icon still launches to the fixed `start_url`, discarding
-whatever query string was on the page when it was added. **The flag had
-no way to reach the one context that needed it.**
-
-Verified directly against production data (`analytics_events`,
-`play_sessions`): `is_test` is being set correctly by every pipeline that
-already reaches it — my own verification session earlier this project
-(`?qbtest=1` in a fresh browser) landed with `is_test = true` everywhere,
-proving the flag mechanism and the RPC filtering (`admin_traffic`,
-`admin_engagement`, `admin_telemetry_health`, etc.) are internally
-consistent. The bug was reachability, not the filtering logic.
-
-**Circumstantial evidence of the actual pollution:** one `visitor_id`
-(`6c1bf8c6-87e0-4834-ac2f-f1d7f2da1b15`) accounts for 31 of the non-test
-`analytics_events` rows across 2026-09-10 through 2026-09-14 — the most
-active real visitor in the dataset by a wide margin, with continuous
-activity spanning the whole beta period and including `onboarding_shown`
-/ `onboarding_completed` (each of which otherwise has exactly one non-test
-occurrence total). This is consistent with the owner's own repeated
-personal testing, but **it is not certain** — a single very engaged early
-beta tester is also a plausible explanation, and nothing in this
-architecture infers identity from behavior (deliberately, per
-`docs/adr/0000-…`). I did not reclassify or delete this device's rows.
-
-### The fix (implemented, forward-looking)
-
-`src/App.tsx`: the hamburger menu's **About Sip the Tea** page now has a
-small, quietly-styled control at the bottom — "Testing the app on your own
-device? Mark this device as a tester" — that calls the exact same
-`isTestMode`/`setTestMode` functions `/admin` already used
-(`src/analytics.ts`, unchanged). Because it's part of the game itself, it
-runs in whatever storage context is currently hosting the game, standalone
-Home Screen install included. This is additive: `/admin`'s own toggle,
-auto-test-mode-on-sign-in, and `?qbtest=` all still work exactly as before.
-No new tables, no new flags, no new architecture — just a second, reachable
-door into a mechanism that already existed and was already filtered
-correctly everywhere downstream.
-
-**To actually stop counting the owner's Home Screen sessions:** open the
-installed icon, hamburger menu → About Sip the Tea → "Mark this device as
-a tester." One tap, permanent until unmarked from the same place.
-
-### Left for the owner to decide
-
-**Should the historical rows from `6c1bf8c6-87e0-4834-ac2f-f1d7f2da1b15`
-(and any other device the owner recognizes as their own) be reclassified
-to `is_test = true`?** I did not do this without confirmation — it's a
-one-way edit to real historical rows based on a strong but not certain
-match, and the instruction that authorized this work explicitly asked for
-rows to be reclassified only once "safely identified." If the owner
-confirms that visitor_id is theirs, the fix is a plain `update
-analytics_events set is_test = true where visitor_id = '…'` (and the
-equivalent on any `play_sessions`/`card_impressions`/etc. rows once telemetry
-volume from that device grows) — small, reversible, and not something to
-do without that confirmation first.
-
----
-
-## 3. This session's other admin dashboard changes
-
-- **Content performance is now cards, not always-open tables.** Most
-  liked, Least liked, Most polarizing, and Every rated question are each a
-  `<details className="adm-card">` styled like the tile design used
-  everywhere else on the dashboard — closed, it's just a count and a label
-  ("Most liked" / "12"); opening it reveals the full table for every
-  question in that count. No more separate "show 3, then show N more"
-  pagination (`ExpandableQuestionTable` was removed entirely) — a card is
-  either collapsed or fully open.
-- **Most polarizing now requires votes on both sides.** Previously it
-  ranked by the polarization formula alone and padded a fixed-length list
-  with whatever was left, which — with a young beta's sparse ratings —
-  could include a one-sided question (all up or all down) purely to fill
-  the list, even though that scores 0 on the formula (the least polarizing
-  value possible). It now filters to `thumbs_up > 0 AND thumbs_down > 0`
-  before ranking. Most liked / Least liked kept their majority filter from
-  the previous session's fix (`positive_pct > 50` / `< 50`); none of the
-  three lists are capped at a fixed length anymore — the card's count is
-  the real, full count.
-- **Community Questions wording now matches the architecture.** "Accept as
-  draft" read as "accept exactly as submitted." It's now "Accept as
-  editable draft," and the section's intro paragraph explicitly says
-  accepting creates an editable draft under a permanent id while the
-  original submission stays on record untouched (already true per ADR
-  0006 — this is a wording fix, not a behavior change). The wording prompt
-  itself was tightened to the same effect.
-- Removed now-dead CSS (`.adm-expand`, `.adm-details`) left over from the
-  pattern the cards replaced.
-
-**Verified:** `tsc -b` clean, full `npm run build` succeeds, `npm test` and
-`npm run test:db` unchanged and fully green. The new About-page tester
-toggle was exercised in a local dev server (mobile viewport) — confirmed
-`qb.testMode.v1` flips in `localStorage` and the button/note text update
-correctly in both directions. The admin dashboard's card redesign was
-**not** exercised against a live `/admin` sign-in — that still needs the
-owner's own password, which this session neither has nor should ever ask
-for.
+**Verified:** `tsc -b` clean, full `npm run build` succeeds, `npm test`
+and `npm run test:db` unchanged and green. Removal of the About-page
+control was exercised in a local dev server — confirmed the block is
+gone from the rendered DOM and no console errors.
 
 ---
 
 ## 4. Hard rules for the next session
 
 - **Never sign into `/admin` or ask the owner for the admin password.**
-- Any push to `main` deploys automatically — treat "push main" and
-  "deploy" as the same action; don't push without the go-ahead you'd want
-  before a deploy.
-- **Never reclassify or delete existing telemetry/analytics rows without
-  the owner explicitly confirming which device/visitor they belong to.**
-  See §2's open question — it's still open until the owner answers it.
+- Any push to `main` deploys automatically.
+- **Do not reclassify or delete any other telemetry/analytics rows**
+  beyond the two devices and two tables specified in §2 without new
+  evidence and the same quantify-first discipline — and don't bypass an
+  append-only trigger for this class of correction; that protection is
+  deliberate.
 - Never change a question id; never change what a telemetry field means;
   never store a derived score; never auto-promote content; never generate
   tags.
@@ -172,17 +170,16 @@ for.
 
 ---
 
-## 5. What remains (all non-blocking)
+## 5. What remains
 
+- **Run the two `UPDATE` statements in §2** — the one concrete unfinished
+  item from this session.
 - **Catalog Sync** (`/admin` → Catalog → "Sync this build") has never been
-  run — needs the owner signed in. Doesn't block telemetry (no FK
-  dependency, ADR 0008), only the catalog/tagging/lifecycle side of things.
-- The historical-data reclassification question in §2.
+  run — needs the owner signed in.
 - Tag the ~430 questions by hand (`src/catalog/questionTags.ts`).
-- `docs/strategy.md` Q3 (outcome definition), Q4 (AI-drafted questions), Q5
-  (persistent groups), Q8 (contributor credit) remain genuinely open.
-- 7 unindexed foreign keys and unused indexes flagged by the Supabase
-  performance advisor — cosmetic at current scale.
+- `docs/strategy.md` Q3, Q4, Q5, Q8 remain genuinely open.
+- Minor Supabase performance advisories (unindexed FKs, unused indexes) —
+  cosmetic at current scale.
 
 ---
 
@@ -190,4 +187,4 @@ for.
 
 Copy and paste:
 
-> Read `SESSION_HANDOFF.md` at the repo root. Confirm `main`'s current HEAD, run `npm test` and `npm run test:db`, and confirm (read-only) QB Production's current migration list and Vercel's current production deployment/commit — don't assume this file is still accurate on either point. Then [describe what you want done next].
+> Read `SESSION_HANDOFF.md` at the repo root. Confirm `main`'s current HEAD, run `npm test` and `npm run test:db`, and confirm (read-only) QB Production's current migration list, current real-visitor KPI numbers, and Vercel's current production deployment/commit — don't assume this file is still accurate on any of those. If the two `UPDATE` statements in §2 haven't been run yet, ask me whether to run them now. Then [describe what you want done next].

@@ -115,6 +115,39 @@
   font-size: 0.82rem;
 }
 
+/*
+ * What this device — this browser's own storage — is currently recording
+ * as. Color is the point: glance-able, so nobody has to reason about two
+ * checkboxes to know whether their own play right now would count as real.
+ * "Production" is neutral (expected default while just browsing numbers);
+ * "Test" is calm but distinct (the normal state once signed in and playing);
+ * "Excluded" is the loud one, since it's also the one silent failure mode —
+ * nothing sent at all, no row anywhere to notice is missing.
+ */
+.adm-device-status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.adm-device-status--production {
+  background: #efeae5;
+  color: var(--muted);
+}
+
+.adm-device-status--test {
+  background: #fff4e0;
+  color: #8a5a00;
+}
+
+.adm-device-status--excluded {
+  background: #fde8e6;
+  color: #b4231a;
+}
+
 .adm-check {
   display: inline-flex;
   align-items: center;

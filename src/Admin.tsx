@@ -160,6 +160,8 @@ export default function Admin() {
   const [includeTest, setIncludeTest] = useState(false)
   const [minVotes, setMinVotes] = useState(1)
   const [deviceExcluded, setDeviceExcludedState] = useState(() => isDeviceExcluded())
+  // Tracked only to display it — see the effect below that keeps it current.
+  const [deviceTestMode, setDeviceTestModeState] = useState(() => isTestMode())
 
   const [metrics, setMetrics] = useState<Metrics>(EMPTY)
   const [loading, setLoading] = useState(false)
@@ -213,6 +215,7 @@ export default function Admin() {
     if (user && !isTestMode()) {
       setTestMode(true)
     }
+    if (user) setDeviceTestModeState(isTestMode())
   }, [user])
 
   const load = useCallback(async () => {
@@ -503,6 +506,18 @@ export default function Admin() {
       bar={
         <div className="adm-bar">
           <span className="adm-who">{user.email}</span>
+          <span
+            className={`adm-device-status adm-device-status--${deviceExcluded ? 'excluded' : deviceTestMode ? 'test' : 'production'}`}
+            title={
+              deviceExcluded
+                ? 'Nothing from this device is sent at all — not even tagged.'
+                : deviceTestMode
+                  ? 'Everything from this device is recorded, tagged is_test — hidden from the numbers above unless "Include test data" is checked.'
+                  : 'This device records as a real visitor. Sign-in normally turns test mode on automatically; seeing this is unusual.'
+            }
+          >
+            This device: <strong>{deviceExcluded ? 'Excluded' : deviceTestMode ? 'Test' : 'Production'}</strong>
+          </span>
           <label className="adm-check">
             <input
               type="checkbox"
