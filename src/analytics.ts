@@ -169,6 +169,44 @@ function initTestModeFromUrl(): void {
 initTestModeFromUrl()
 
 /**
+ * Closes the one gap `?qbtest=` and "Exclude this device" can't reach: an
+ * iOS "Add to Home Screen" install runs in a storage context separate from
+ * Safari's, so a flag set from a Safari tab — signing into `/admin`, or
+ * visiting a `?qbtest=` link — never reaches an icon already on the Home
+ * Screen, and there's no address bar in a standalone launch to visit one
+ * from afterward either. (Third-party reports are consistent that iOS
+ * partitions storage this way; this workaround holds regardless of whether
+ * that's the full explanation, since it doesn't depend on storage being
+ * shared — see SESSION_HANDOFF.md for the decisive test, if this ever needs
+ * settling for certain.)
+ *
+ * The fix doesn't try to reach across that boundary — it sidesteps it.
+ * `manifest-test.webmanifest` is identical to the real one except its
+ * `start_url` carries `?qbtest=1`. While this browser is already in test
+ * mode (or excluded — either means "not a normal player right now"),
+ * whoever taps "Add to Home Screen" gets an icon backed by *that* manifest,
+ * so every future launch re-navigates through a URL `initTestModeFromUrl`
+ * re-asserts test mode from — no admin sign-in and no address bar needed at
+ * launch time, because the flag arrives baked into the launch itself.
+ *
+ * Never runs on `/admin` (nothing there is ever added to a Home Screen),
+ * and never shows a normal player anything: a device that has never been
+ * marked test or excluded keeps the one true manifest, unchanged.
+ */
+function useTestManifestIfWarranted(): void {
+  try {
+    if (!isTestMode() && !isDeviceExcluded()) return
+    if (window.location.pathname.replace(/\/+$/, '') === '/admin') return
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
+    if (link) link.href = '/manifest-test.webmanifest'
+  } catch {
+    // No DOM (a test runner), or no manifest link to swap — nothing to do.
+  }
+}
+
+useTestManifestIfWarranted()
+
+/**
  * The identity every outbound row carries, so ratings can join to sessions.
  * `is_test` covers both flags: an excluded device's ratings and suggestions
  * still go out (only `track()` short-circuits fully — see `isDeviceExcluded`)

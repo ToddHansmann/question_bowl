@@ -63,7 +63,9 @@ const DECK_SUMMARY: DeckSummary = {
 /* ------------------------------------------------------------- shapes --- */
 
 type Traffic = {
+  engaged_visitors: number
   unique_visitors: number
+  one_event_visitors: number
   sessions_opened: number
   sessions_started: number
   sessions_completed: number
@@ -296,7 +298,20 @@ export default function Admin() {
     const opened = events_.filter((r) => r.name === 'app_opened')
     const started = events_.filter((r) => r.name === 'session_started').length
     const completed = events_.filter((r) => r.name === 'session_completed').length
-    const uniqueVisitors = new Set(opened.map((r) => r.visitor_id).filter(Boolean)).size
+    // Matches admin_traffic's own definitions exactly: unique_visitors counts
+    // distinct visitor_id across every event today, not just app_opened —
+    // engaged_visitors narrows that to whoever also reached session_started.
+    const byVisitor = new Map<string, { events: number; started: boolean }>()
+    for (const r of events_) {
+      if (!r.visitor_id) continue
+      const v = byVisitor.get(r.visitor_id) ?? { events: 0, started: false }
+      v.events += 1
+      if (r.name === 'session_started') v.started = true
+      byVisitor.set(r.visitor_id, v)
+    }
+    const uniqueVisitors = byVisitor.size
+    const engagedVisitors = [...byVisitor.values()].filter((v) => v.started).length
+    const oneEventVisitors = [...byVisitor.values()].filter((v) => v.events === 1).length
 
     const ratingRows = (ratingsRes.data as { value: string }[]) ?? []
     const up = ratingRows.filter((r) => r.value === 'up').length
@@ -305,7 +320,9 @@ export default function Admin() {
 
     setDaily({
       traffic: {
+        engaged_visitors: engagedVisitors,
         unique_visitors: uniqueVisitors,
+        one_event_visitors: oneEventVisitors,
         sessions_opened: opened.length,
         sessions_started: started,
         sessions_completed: completed,
@@ -512,20 +529,12 @@ export default function Admin() {
               deviceExcluded
                 ? 'Nothing from this device is sent at all — not even tagged.'
                 : deviceTestMode
-                  ? 'Everything from this device is recorded, tagged is_test — hidden from the numbers above unless "Include test data" is checked.'
+                  ? 'Everything from this device is recorded, tagged is_test — hidden from the numbers below by default. See Diagnostics to include it.'
                   : 'This device records as a real visitor. Sign-in normally turns test mode on automatically; seeing this is unusual.'
             }
           >
             This device: <strong>{deviceExcluded ? 'Excluded' : deviceTestMode ? 'Test' : 'Production'}</strong>
           </span>
-          <label className="adm-check">
-            <input
-              type="checkbox"
-              checked={includeTest}
-              onChange={(ev) => setIncludeTest(ev.target.checked)}
-            />
-            Include test data
-          </label>
           <label
             className="adm-check"
             title="Nothing from this device is sent at all, not even tagged. Not reversible after the fact — a device left excluded stays fully dark, including for a real session."
@@ -590,8 +599,9 @@ export default function Admin() {
             )}
             <div className="adm-tiles" aria-busy={range === 'daily' && dailyLoading}>
               <Tile
-                label="Unique visitors"
-                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.unique_visitors)}
+                label="Engaged visitors"
+                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.engaged_visitors)}
+                note="Reached the deck — not just the landing page"
               />
               <Tile
                 label="Sessions started"
@@ -601,11 +611,6 @@ export default function Admin() {
                 label="Sessions completed"
                 value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_completed)}
                 note={`5+ questions · ${rate(n(shownTraffic?.sessions_completed), n(shownTraffic?.sessions_started))} of started`}
-              />
-              <Tile
-                label="Opened the app"
-                value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_opened)}
-                note={`${rate(n(shownTraffic?.sessions_started), n(shownTraffic?.sessions_opened))} tapped into the deck`}
               />
             </div>
           </section>
@@ -634,6 +639,51 @@ export default function Admin() {
                 value={range === 'daily' && dailyLoading ? '…' : n(shownEngagement?.total_suggestions)}
               />
             </div>
+          </section>
+
+          <section className="adm-section">
+            <details>
+              <summary className="adm-summary">Diagnostics</summary>
+              <p className="adm-note adm-note--tight">
+                Raw browser identities, not people — most of what shows up here has never opened
+                the deck. Included to sanity-check the pipeline and spot automated traffic, not to
+                judge adoption by.
+              </p>
+              <label className="adm-check adm-check--block">
+                <input
+                  type="checkbox"
+                  checked={includeTest}
+                  onChange={(ev) => setIncludeTest(ev.target.checked)}
+                />
+                Include test data (affects every section on this page)
+              </label>
+              <div className="adm-tiles" aria-busy={range === 'daily' && dailyLoading}>
+                <Tile
+                  label="Unique visitors"
+                  value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.unique_visitors)}
+                  note="Any tracked event, landing page included"
+                />
+                <Tile
+                  label="Never reached the deck"
+                  value={
+                    range === 'daily' && dailyLoading
+                      ? '…'
+                      : n(shownTraffic?.unique_visitors) - n(shownTraffic?.engaged_visitors)
+                  }
+                  note={`${rate(n(shownTraffic?.unique_visitors) - n(shownTraffic?.engaged_visitors), n(shownTraffic?.unique_visitors))} of unique visitors`}
+                />
+                <Tile
+                  label="One-event visitors"
+                  value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.one_event_visitors)}
+                  note="A single event, ever — the likeliest bots and link previews"
+                />
+                <Tile
+                  label="Landing page loads"
+                  value={range === 'daily' && dailyLoading ? '…' : n(shownTraffic?.sessions_opened)}
+                  note={`${rate(n(shownTraffic?.sessions_started), n(shownTraffic?.sessions_opened))} tapped into the deck`}
+                />
+              </div>
+            </details>
           </section>
 
           <section className="adm-section">

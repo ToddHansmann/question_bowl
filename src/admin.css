@@ -158,6 +158,14 @@
   cursor: pointer;
 }
 
+/* A checkbox sitting alone in a section's own flow (e.g. Diagnostics),
+   rather than inline among other bar controls. */
+.adm-check--block {
+  display: flex;
+  white-space: normal;
+  margin-bottom: 14px;
+}
+
 .adm-check select {
   margin-left: 4px;
   padding: 2px 4px;

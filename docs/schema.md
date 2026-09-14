@@ -142,10 +142,15 @@ non-test rows.
 | `admin_transition_question(question_id, to_status, reason)` | Dashboard | One lifecycle move. |
 | `admin_question_statuses()` | Tools | Id → current status. |
 | `admin_telemetry_health(include_test)` | Dashboard → Data health | Ingestion integrity counts. |
-| Legacy `admin_traffic`, `admin_engagement`, `admin_ratings_by_category`, `admin_ratings_by_question`, `admin_suggestions` | Dashboard | Unchanged. |
+| `admin_traffic(include_test)` | Dashboard → Traffic | Leads with `engaged_visitors` (distinct visitor_id that reached `session_started`) — the primary KPI as of 2026-09-14. `unique_visitors` (any tracked event, landing page included) and `one_event_visitors` moved to the dashboard's collapsed Diagnostics section; see `docs/migration-notes.md`. |
+| Legacy `admin_engagement`, `admin_ratings_by_category`, `admin_ratings_by_question`, `admin_suggestions` | Dashboard | Unchanged. |
 
 ## Changes to existing objects
 
 Exactly one: `question_ratings.source` CHECK widened from
 `('original','todd')` to `('original','todd','community')`, re-created under
 the explicit name `question_ratings_source_check`.
+
+(`admin_traffic`'s return shape changed — see the table above — but that's a
+function replacement, not a change to a stored schema object; nothing reads
+its old five-column shape.)

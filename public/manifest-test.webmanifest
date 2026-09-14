@@ -1,0 +1,24 @@
+{
+  "name": "Sip the Tea (Test)",
+  "short_name": "Tea (Test)",
+  "description": "A tester install — every session from this icon is recorded as a test, not a real player.",
+  "start_url": "/?qbtest=1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FD3D2F",
+  "theme_color": "#FD3D2F",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
